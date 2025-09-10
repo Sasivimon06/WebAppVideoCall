@@ -317,6 +317,30 @@ textarea {
     right: 20px;
     z-index: 1000;
 }
+.top-message {
+    position: fixed;
+    top: -80px; /* เริ่มซ่อนด้านบน */
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    transition: top 0.5s ease, opacity 0.5s ease;
+    opacity: 0.9;
+}
+
+.top-message.success { background-color: #4caf50; }
+.top-message.error { background-color: #f44336; }
+.top-message.info { background-color: #2196f3; }
+
+.top-message.show {
+    top: 20px; /* เลื่อนลงมาเมื่อโชว์ */
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 992px) {

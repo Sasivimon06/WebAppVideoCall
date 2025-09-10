@@ -1,8 +1,8 @@
 // สถานะการเรียน
-let progress = {
-    topic1: { pretest: false, learn: false, posttest: false },
-    topic2: { pretest: false, learn: false, posttest: false },
-    topic3: { pretest: false, learn: false, posttest: false }
+const defaultProgress = {
+    topic1: { pretest:false, learn:false, posttest:false },
+    topic2: { pretest:false, learn:false, posttest:false },
+    topic3: { pretest:false, learn:false, posttest:false }
 };
 
 // ข้อมูลหัวข้อ
@@ -13,35 +13,36 @@ const topics = {
 };
 
 // ตัวแปรสถานะปัจจุบัน
-let currentTopic = '';
-let currentStep = '';
+let currentTopic = localStorage.getItem('currentTopic') || '';
+let currentStep = localStorage.getItem('currentStep') || '';
+let progress = JSON.parse(JSON.stringify(defaultProgress));
+let currentUser = document.body.dataset.currentUser || 'guest';
+console.log('Current user:', currentUser);
 
 // เริ่มต้น
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeEventListeners();
-    loadProgressFromPython(); // โหลด progress จาก server
-    loadProgress(); // โหลด progress จาก localStorage
-    restoreLastPage(); // โหลดหน้าปัจจุบัน
-    setTimeout(updateProgressBars, 100);
+
+    if(currentUser && currentUser !== 'guest'){
+        await loadProgressFromPython();
+    } else {
+        loadProgress(); // fallback localStorage
+    }
+
+    restoreLastPage(); // จะเรียก showTopicPage / showStepPage ตาม page เดิม
 });
 
 // ฟังก์ชันบันทึกหน้าเดิม
 function restoreLastPage() {
     const savedPage = localStorage.getItem('currentPage');
-    const savedTopic = localStorage.getItem('currentTopic');
-    const savedStep = localStorage.getItem('currentStep');
 
-    if (savedPage) {
-        if (savedPage === 'home-page') {
-            showHomePage();
-        } else if (savedPage === 'topic-page' && savedTopic) {
-            showTopicPage(savedTopic);
-        } else if (savedPage === 'step-page' && savedTopic && savedStep) {
-            showTopicPage(savedTopic);
-            showStepPage(savedStep);
-        } else {
-            showHomePage();
-        }
+    if (savedPage === 'home-page') {
+        showHomePage();
+    } else if (savedPage === 'topic-page' && currentTopic) {
+        showTopicPage(currentTopic);  // progress ของ topic ถูกโหลดแล้ว
+    } else if (savedPage === 'step-page' && currentTopic && currentStep) {
+        showTopicPage(currentTopic);  // โหลด topic ก่อน
+        showStepPage(currentStep);    // แล้วค่อยเปิด step
     } else {
         showHomePage();
     }
@@ -68,7 +69,9 @@ function initializeEventListeners() {
 function showHomePage() {
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     document.getElementById('home-page').classList.add('active');
-    updateProgressBars();
+
+    updateStepStatus(); // อัปเดต step card
+    updateProgressBars(); // อัปเดต progress bar
 
     localStorage.setItem('currentPage', 'home-page');
     localStorage.removeItem('currentTopic');
@@ -86,6 +89,7 @@ function showTopicPage(topicId = currentTopic) {
     document.getElementById('topic-description').textContent = topics[topicId].description;
 
     updateStepStatus();
+    updateProgressBars(); // <--- เพิ่มตรงนี้
 
     localStorage.setItem('currentPage', 'topic-page');
     localStorage.setItem('currentTopic', currentTopic);
@@ -169,24 +173,57 @@ function createStepContent(stepId) {
     contentDiv.innerHTML = content;
 }
 
-// เสร็จสิ้นขั้นตอน
-function completeStep(stepId) {
-    progress[currentTopic][stepId] = true;
-    saveProgress();
 
-    let message = '';
-    switch(stepId) {
-        case 'pretest': message = 'ส่งคำตอบแบบทดสอบก่อนเรียนสำเร็จ!'; break;
-        case 'learn': message = 'เรียนจบแล้ว! คุณสามารถทำแบบทดสอบหลังเรียนได้'; break;
-        case 'posttest': message = 'ส่งคำตอบสำเร็จ! คุณได้เรียนจบหัวข้อนี้แล้ว'; break;
+// เสร็จสิ้นขั้นตอน
+async function completeStep(stepId) {
+    if(!currentUser || currentUser === 'guest'){
+        alert('กรุณาล็อกอินก่อนทำแบบทดสอบ');
+        return;
     }
 
-    alert(message);
-    showTopicPage();
+    let score = 0;
+
+    if(stepId === 'pretest' || stepId === 'posttest'){
+        score = Math.floor(Math.random()*41)+60; // 60-100
+    } else if(stepId === 'learn'){
+        score = 100;
+    }
+
+    // อัพเดท progress local
+    progress[currentTopic][stepId] = true;
+
+    // ส่งไป server
+     try {
+        const response = await fetch('/api/submit_answer', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                username: currentUser,
+                topic_id: currentTopic,
+                step_id: stepId,
+                answers: {}, // สมมุติ
+                score: score
+            })
+        });
+        const result = await response.json();
+        if(result.success){
+            alert(`ส่งคำตอบสำเร็จ! คะแนน: ${score}`);
+        } else {
+            alert('เกิดข้อผิดพลาด: ' + result.error);
+        }
+    } catch(err){
+        console.error(err);
+        alert('ไม่สามารถส่งคำตอบไป server ได้');
+    }
+
+    saveProgress(); // บันทึก localStorage
+    showTopicPage(currentTopic);
 }
 
 // อัพเดทสถานะขั้นตอน
 function updateStepStatus() {
+    if(!currentTopic || !progress[currentTopic]) return;
+
     const stepCards = document.querySelectorAll('.step-card');
     const steps = ['pretest', 'learn', 'posttest'];
 
@@ -209,67 +246,98 @@ function updateStepStatus() {
 // อัพเดท Progress Bar
 function updateProgressBars() {
     document.querySelectorAll('.topic-card').forEach(card => {
-        const topicId = card.getAttribute('data-topic');
+        const topicId = card.dataset.topic;
+        if (!progress[topicId]) return;
+
+        const topicProgress = progress[topicId];
+
+        // นับจำนวน step ที่เสร็จ
+        const completed = Object.values(topicProgress).filter(v => v).length;
+        const total = Object.keys(topicProgress).length; // ต้องเท่ากับ 3
+
+        // อัปเดต progress bar และตัวเลข
         const progressBar = card.querySelector('.progress');
         const progressCount = card.querySelector('.progress-count');
 
-        const completed = Object.values(progress[topicId]).filter(v => v).length;
-        const total = Object.values(progress[topicId]).length; // 3
-        const percentage = (completed / total) * 100;
-
-        // อัพเดทแถบ
+        const percentage = Math.round((completed / total) * 100);
         progressBar.style.width = percentage + '%';
         progressBar.setAttribute('data-progress', percentage);
 
-        // อัพเดทตัวเลข
         if (progressCount) {
             progressCount.textContent = `${completed}/${total}`;
         }
+    console.log('Topic:', topicId, 'Progress:', topicProgress, 'Completed:', completed, 'Total:', total);
+
     });
 }
+
+
 
 // บันทึกความคืบหน้า
 function saveProgress() {
     try {
-        localStorage.setItem('learningProgress', JSON.stringify(progress));
+        localStorage.setItem(`learningProgress_${currentUser}`, JSON.stringify(progress));
         sendProgressToPython();
     } catch (error) {
         console.error('Error saving progress:', error);
     }
 }
 
-// โหลดความคืบหน้า
+// โหลด progress ของผู้ใช้
 function loadProgress() {
-    try {
-        const saved = localStorage.getItem('learningProgress');
-        if (saved) progress = JSON.parse(saved);
-    } catch (error) {
-        console.error('Error loading progress:', error);
+    progress = JSON.parse(JSON.stringify(defaultProgress)); // สร้าง base ใหม่
+    const saved = localStorage.getItem(`learningProgress_${currentUser}`);
+    if(saved){
+        const savedProgress = JSON.parse(saved);
+        for(const t in savedProgress){
+            if(progress[t]){
+                progress[t] = {...progress[t], ...savedProgress[t]}; // merge step ต่อ step
+            }
+        }
     }
 }
 
 // ส่งข้อมูลไป Python API
-async function sendProgressToPython() {
-    try {
-        await fetch('/api/progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ progress: progress, timestamp: new Date().toISOString() })
+async function sendProgressToPython(){
+    try{
+        await fetch(`/api/progress`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({username: currentUser, progress: progress})
         });
-    } catch (error) {
-        console.log('Could not save to server, using local storage only');
+    } catch(err){
+        console.log('ไม่สามารถส่ง progress ไป server ได้', err);
     }
 }
 
 // โหลดความคืบหน้าจาก Python API
 async function loadProgressFromPython() {
     try {
-        const response = await fetch('/api/progress');
+        const response = await fetch(`/api/progress?username=${currentUser}`);
         if (response.ok) {
             const data = await response.json();
-            progress = data.progress || progress;
+            if(data.success && data.progress){
+                const validSteps = ['pretest', 'learn', 'posttest'];
+
+                progress = JSON.parse(JSON.stringify(defaultProgress));
+
+                for (const t in data.progress) {
+                    if (progress[t] && typeof data.progress[t] === 'object') {
+                        validSteps.forEach(step => {
+                            if(data.progress[t][step] === true){  // ต้องเช็ค === true
+                                progress[t][step] = true;
+                            }
+                        });
+                    }
+                }
+            } else {
+                loadProgress(); // fallback จาก localStorage
+            }
+        } else {
+            loadProgress(); // fallback จาก localStorage
         }
-    } catch {
-        loadProgress();
+    } catch(err){
+        console.error('โหลด progress จาก server ไม่ได้', err);
+        loadProgress(); // fallback จาก localStorage
     }
 }

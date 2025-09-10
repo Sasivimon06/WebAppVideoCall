@@ -9,7 +9,6 @@ from werkzeug.security import check_password_hash,generate_password_hash
 from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
-DATABASE = '"patients.db"'
 app.secret_key = 'this_is_a_test_key_for_demo'
 RFID_API_KEY = "my_secure_token_only_for_demo"  
 
@@ -500,6 +499,160 @@ def reset_password():
 
     return render_template('reset_password.html')
 
+@app.route('/')
+@login_required
+def home():
+    return render_template('home.html')
+
+def init_learn_db():
+    with sqlite3.connect("learn.db") as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS learn (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                topic_id TEXT NOT NULL,        
+                pre_score REAL,
+                learn_completed BOOLEAN DEFAULT 0,
+                post_score REAL,            
+                completed_at TEXT
+            );
+        ''')
+    conn.commit()
+
+@app.route('/learn')
+def learn():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    username = session['user']
+    return render_template('learn.html', current_user=username)
+
+def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
+    with sqlite3.connect("learn.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM learn WHERE username=? AND topic_id=?", (username, topic_id))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("""
+                UPDATE learn
+                SET pre_score = COALESCE(?, pre_score),
+                    learn_completed = COALESCE(?, learn_completed),
+                    post_score = COALESCE(?, post_score),
+                    completed_at = COALESCE(?, completed_at)
+                WHERE id = ?
+            """, (pre_score, learn_completed, post_score, completed_at, row[0]))
+        else:
+            cursor.execute("""
+                INSERT INTO learn (username, topic_id, pre_score, learn_completed, post_score, completed_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, topic_id, pre_score, learn_completed, post_score, completed_at))
+        conn.commit()
+
+def get_progress_db(username):
+    with sqlite3.connect("learn.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT topic_id, pre_score, post_score, completed_at FROM learn WHERE username=?", (username,))
+        rows = cursor.fetchall()
+        progress = {}
+        for topic_id, pre_score, post_score, completed_at in rows:
+            progress[topic_id] = {
+                "pretest": pre_score is not None,
+                "learn": learn_completed is True,
+                "posttest": post_score is not None,
+                "pre_score": pre_score,
+                "post_score": post_score,
+                "completed_at": completed_at
+            }
+        return progress
+
+@app.route('/api/progress', methods=['GET'])
+def get_progress():
+    username = request.args.get('username', 'guest')
+    try:
+        progress = get_progress_db(username)
+        if not progress:
+            progress = {
+                'topic1': {'pretest': False, 'learn': False, 'posttest': False},
+                'topic2': {'pretest': False, 'learn': False, 'posttest': False},
+                'topic3': {'pretest': False, 'learn': False, 'posttest': False}
+            }
+        return jsonify({'success': True, 'progress': progress})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/progress', methods=['POST'])
+def save_progress():
+    try:
+        data = request.get_json()
+        username = data['username']
+        topic_id = data['topic_id']
+        pre_score = data.get('pre_score')
+        post_score = data.get('post_score')
+        completed_at = data.get('completed_at')
+
+        save_progress_db(username, topic_id, pre_score, post_score, completed_at)
+
+        return jsonify({'success': True, 'message': 'Progress saved to DB successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/topics', methods=['GET'])
+def get_topics():
+    topics = {
+        'topic1': {'id': 'topic1', 'title': 'พื้นฐานการเขียนโปรแกรม', 'description': 'เรียนรู้พื้นฐาน', 'icon': '💻'},
+        'topic2': {'id': 'topic2', 'title': 'โครงสร้างข้อมูลและอัลกอริทึม', 'description': 'เรียนรู้โครงสร้างข้อมูล', 'icon': '🔧'},
+        'topic3': {'id': 'topic3', 'title': 'การพัฒนาเว็บไซต์', 'description': 'HTML, CSS, JS', 'icon': '🌐'}
+    }
+    return jsonify({'success': True, 'topics': topics})
+
+@app.route('/api/content/<topic_id>/<step_id>', methods=['GET'])
+def get_content(topic_id, step_id):
+    content_data = {
+        'topic1': {'pretest': {'title':'ก่อนเรียน','questions':[{'id':'q1','question':'อะไรคือโปรแกรม?','type':'multiple_choice','options':['A','B','C','D']}]}, 
+                   'learn': {'title':'เรียน','sections':[{'title':'แนวคิด','content':'...'}]}, 
+                   'posttest': {'title':'หลังเรียน','questions':[{'id':'q1','question':'อธิบายแนวคิด','type':'essay'}]}},
+        'topic2': {'pretest': {}, 'learn': {}, 'posttest': {}},
+        'topic3': {'pretest': {}, 'learn': {}, 'posttest': {}}
+    }
+    if topic_id in content_data and step_id in content_data[topic_id]:
+        return jsonify({'success': True, 'content': content_data[topic_id][step_id]})
+    else:
+        return jsonify({'success': False, 'error': 'Content not found'}), 404
+    
+@app.route('/api/submit_answer', methods=['POST'])
+def submit_answer():
+    data = request.get_json()
+    username = data.get('username')
+    topic_id = data.get('topic_id')
+    step_id = data.get('step_id')
+    score = data.get('score')  # รับคะแนนจาก JS
+
+    # สมมุติ completed_at สำหรับ posttest
+    completed_at = datetime.now().isoformat() if step_id == 'posttest' else None
+
+    if step_id == 'pretest':
+        save_progress_db(username, topic_id, pre_score=score)
+    elif step_id == 'posttest':
+        save_progress_db(username, topic_id, post_score=score, completed_at=completed_at)
+    else:  # learn
+        save_progress_db(username, topic_id)
+
+    return jsonify({'success': True, 'score': score, 'message': 'Answer submitted'})
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    try:
+        if filename.endswith('.css'):
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return content, 200, {'Content-Type': 'text/css; charset=utf-8'}
+        elif filename.endswith('.js'):
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
+    except FileNotFoundError:
+        return "File not found", 404
+
+
 def init_patients_db():
     with sqlite3.connect("patients.db") as conn:
         conn.execute('''
@@ -513,300 +666,6 @@ def init_patients_db():
         ''')
         conn.commit()
 
-@app.route('/')
-@login_required
-def home():
-    return render_template('home.html')
-
-def init_learn_db():
-    with sqlite3.connect("learn.db") as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS learn (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                patient_id TEXT NOT NULL,
-                lesson_id INTEGER NOT NULL,        
-                score_before REAL,
-                score_after REAL,
-                time_spent INTEGER,               
-                completed_at TEXT
-            );
-        ''')
-    conn.commit()
-
-@app.route('/learn')
-def learn():
-    return render_template('learn.html')
-
-@app.route('/api/progress', methods=['GET'])
-def get_progress():
-    """ดึงข้อมูลความคืบหน้าของผู้เรียน"""
-    try:
-        # ในการใช้งานจริง ควรมีระบบ authentication เพื่อแยกข้อมูลของแต่ละผู้ใช้
-        user_id = request.args.get('user_id', 'default_user')
-        
-        if user_id in progress_data:
-            return jsonify({
-                'success': True,
-                'progress': progress_data[user_id]['progress'],
-                'last_updated': progress_data[user_id]['timestamp']
-            })
-        else:
-            # ส่งค่าเริ่มต้น
-            default_progress = {
-                'topic1': {'pretest': False, 'learn': False, 'posttest': False},
-                'topic2': {'pretest': False, 'learn': False, 'posttest': False},
-                'topic3': {'pretest': False, 'learn': False, 'posttest': False}
-            }
-            return jsonify({
-                'success': True,
-                'progress': default_progress
-            })
-            
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/progress', methods=['POST'])
-def save_progress():
-    """บันทึกความคืบหน้าของผู้เรียน"""
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id', 'default_user')
-        
-        progress_data[user_id] = {
-            'progress': data['progress'],
-            'timestamp': data['timestamp']
-        }
-        
-        # บันทึกลงไฟล์ (ในการใช้งานจริงควรใช้ฐานข้อมูล)
-        save_to_file()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Progress saved successfully'
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/topics', methods=['GET'])
-def get_topics():
-    """ดึงข้อมูลหัวข้อทั้งหมด"""
-    topics = {
-        'topic1': {
-            'id': 'topic1',
-            'title': 'หัวข้อที่ 1: พื้นฐานการเขียนโปรแกรม',
-            'description': 'เรียนรู้พื้นฐานการเขียนโปรแกรมและแนวคิดสำคัญ',
-            'icon': '💻'
-        },
-        'topic2': {
-            'id': 'topic2',
-            'title': 'หัวข้อที่ 2: โครงสร้างข้อมูลและอัลกอริทึม',
-            'description': 'ทำความเข้าใจโครงสร้างข้อมูลและอัลกอริทึมพื้นฐาน',
-            'icon': '🔧'
-        },
-        'topic3': {
-            'id': 'topic3',
-            'title': 'หัวข้อที่ 3: การพัฒนาเว็บไซต์',
-            'description': 'สร้างเว็บไซต์ด้วย HTML, CSS, และ JavaScript',
-            'icon': '🌐'
-        }
-    }
-    
-    return jsonify({
-        'success': True,
-        'topics': topics
-    })
-
-@app.route('/api/content/<topic_id>/<step_id>', methods=['GET'])
-def get_content(topic_id, step_id):
-    """ดึงเนื้อหาของแต่ละขั้นตอน"""
-    try:
-        content_data = load_content_data()
-        
-        if topic_id in content_data and step_id in content_data[topic_id]:
-            return jsonify({
-                'success': True,
-                'content': content_data[topic_id][step_id]
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': 'Content not found'
-            }), 404
-            
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/submit_answer', methods=['POST'])
-def submit_answer():
-    """รับคำตอบจากผู้เรียน"""
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id', 'default_user')
-        topic_id = data.get('topic_id')
-        step_id = data.get('step_id')
-        answers = data.get('answers')
-        
-        # บันทึกคำตอบ
-        answer_key = f"{user_id}_{topic_id}_{step_id}"
-        save_answer(answer_key, answers)
-        
-        # ประเมินคะแนน (ตัวอย่าง)
-        score = calculate_score(topic_id, step_id, answers)
-        
-        return jsonify({
-            'success': True,
-            'score': score,
-            'message': 'Answer submitted successfully'
-        })
-        
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """ให้บริการไฟล์ static"""
-    try:
-        if filename == 'styles.css':
-            with open('styles.css', 'r', encoding='utf-8') as f:
-                content = f.read()
-            return content, 200, {'Content-Type': 'text/css; charset=utf-8'}
-        elif filename == 'script.js':
-            with open('script.js', 'r', encoding='utf-8') as f:
-                content = f.read()
-            return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
-    except FileNotFoundError:
-        return "File not found", 404
-
-def save_to_file():
-    """บันทึกข้อมูลลงไฟล์"""
-    try:
-        with open('progress_data.json', 'w', encoding='utf-8') as f:
-            json.dump(progress_data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error saving to file: {e}")
-
-def load_from_file():
-    """โหลดข้อมูลจากไฟล์"""
-    global progress_data
-    try:
-        if os.path.exists('progress_data.json'):
-            with open('progress_data.json', 'r', encoding='utf-8') as f:
-                progress_data = json.load(f)
-    except Exception as e:
-        print(f"Error loading from file: {e}")
-
-def load_content_data():
-    """โหลดเนื้อหาการเรียน"""
-    return {
-        'topic1': {
-            'pretest': {
-                'title': 'แบบทดสอบก่อนเรียน: พื้นฐานการเขียนโปรแกรม',
-                'questions': [
-                    {
-                        'id': 'q1',
-                        'question': 'การเขียนโปรแกรมคืออะไร?',
-                        'type': 'multiple_choice',
-                        'options': [
-                            'การสร้างคำสั่งให้คอมพิวเตอร์ทำงาน',
-                            'การเล่นเกมคอมพิวเตอร์',
-                            'การใช้โซเชียลมีเดีย',
-                            'การดูวิดีโอ'
-                        ]
-                    }
-                ]
-            },
-            'learn': {
-                'title': 'เริ่มเรียน: พื้นฐานการเขียนโปรแกรม',
-                'sections': [
-                    {
-                        'title': 'แนวคิดพื้นฐาน',
-                        'content': 'การเขียนโปรแกรมเป็นกระบวนการสร้างคำสั่งให้คอมพิวเตอร์ทำงานตามที่เราต้องการ'
-                    }
-                ]
-            },
-            'posttest': {
-                'title': 'แบบทดสอบหลังเรียน: พื้นฐานการเขียนโปรแกรม',
-                'questions': [
-                    {
-                        'id': 'q1',
-                        'question': 'อธิบายแนวคิดหลักของการเขียนโปรแกรม',
-                        'type': 'essay'
-                    }
-                ]
-            }
-        },
-        'topic2': {
-            'pretest': {
-                'title': 'แบบทดสอบก่อนเรียน: โครงสร้างข้อมูลและอัลกอริทึม',
-                'questions': []
-            },
-            'learn': {
-                'title': 'เริ่มเรียน: โครงสร้างข้อมูลและอัลกอริทึม',
-                'sections': []
-            },
-            'posttest': {
-                'title': 'แบบทดสอบหลังเรียน: โครงสร้างข้อมูลและอัลกอริทึม',
-                'questions': []
-            }
-        },
-        'topic3': {
-            'pretest': {
-                'title': 'แบบทดสอบก่อนเรียน: การพัฒนาเว็บไซต์',
-                'questions': []
-            },
-            'learn': {
-                'title': 'เริ่มเรียน: การพัฒนาเว็บไซต์',
-                'sections': []
-            },
-            'posttest': {
-                'title': 'แบบทดสอบหลังเรียน: การพัฒนาเว็บไซต์',
-                'questions': []
-            }
-        }
-    }
-
-def save_answer(answer_key, answers):
-    """บันทึกคำตอบของผู้เรียน"""
-    try:
-        answers_file = 'answers_data.json'
-        answers_data = {}
-        
-        if os.path.exists(answers_file):
-            with open(answers_file, 'r', encoding='utf-8') as f:
-                answers_data = json.load(f)
-        
-        answers_data[answer_key] = {
-            'answers': answers,
-            'timestamp': datetime.now().isoformat()
-        }
-        
-        with open(answers_file, 'w', encoding='utf-8') as f:
-            json.dump(answers_data, f, ensure_ascii=False, indent=2)
-            
-    except Exception as e:
-        print(f"Error saving answers: {e}")
-
-def calculate_score(topic_id, step_id, answers):
-    """คำนวณคะแนน (ตัวอย่าง)"""
-    # ในการใช้งานจริง ควรมีเฉลยและวิธีการคำนวณคะแนนที่ซับซ้อนกว่านี้
-    if step_id in ['pretest', 'posttest']:
-        return len([ans for ans in answers.values() if ans]) * 20  # 20 คะแนนต่อข้อ
-    return 100  # สำหรับขั้นตอนการเรียน
-
-
 # ฟังก์ชันดึง follow-ups
 def get_all_followups():
     conn = sqlite3.connect("patients.db")
@@ -815,35 +674,54 @@ def get_all_followups():
     conn.close()
     return [dict(f) for f in followups]
 
-@app.route('/video_call', methods=['GET', 'POST'])
+@app.route('/video_call')
 def video_call():
-    if request.method == 'POST':
-        patient_name = request.form['patient_name']
-        HN = request.form['HN'] 
-        followup_text = request.form['followup_text']
-        followup_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return render_template('video_call.html')
 
+@app.route('/api/patients', methods=['POST'])
+def patients():
+    data = request.json
+    patient_name = data.get('patient_name')
+    HN = data.get('HN')
+    followup_text = data.get('followup_text')
+    followup_date = data.get('followup_date') or datetime.now().strftime("%Y-%m-%d")
+
+    try:
         with sqlite3.connect("patients.db") as conn:
             conn.execute('''
                 INSERT INTO patients (patient_name, HN, followup_text, followup_date)
                 VALUES (?, ?, ?, ?)
             ''', (patient_name, HN, followup_text, followup_date))
             conn.commit()
+        return jsonify({"success": True, "message": "บันทึกข้อมูลสำเร็จ!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
-        return redirect(url_for('video_call'))
+@app.route('/api/save_patient', methods=['POST'])
+def save_patient():
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        HN = data.get('HN')
+        followup_text = data.get('notes', '')
+        followup_date = data.get('followUpDate', datetime.now().strftime("%Y-%m-%d"))
 
-    followups = get_all_followups()
-    return render_template('video_call.html', followups=followups)
+        if not name or not HN:
+            return jsonify({'success': False, 'error': 'ชื่อ-สกุล และ HN เป็นค่าจำเป็น'}), 400
 
+        with sqlite3.connect("patients.db") as conn:
+            conn.execute('''
+                INSERT INTO patients (patient_name, HN, followup_text, followup_date)
+                VALUES (?, ?, ?, ?)
+            ''', (name, HN, followup_text, followup_date))
+            conn.commit()
 
-@app.route('/api/patients', methods=['GET'])
-def get_patients():
-    data = [
-        {"id": 1, "name": "John Doe", "HN": "12345"},
-        {"id": 2, "name": "Jane Smith", "HN": "67890"}
-    ]
-    return jsonify(data)
+        updated_at = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        return jsonify({'success': True, 'message': 'บันทึกข้อมูลเรียบร้อย', 'updated_at': updated_at})
 
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({'success': False, 'error': 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'}), 500
 
 """ @app.route('/api/start-call', methods=['POST'])
 def start_call():

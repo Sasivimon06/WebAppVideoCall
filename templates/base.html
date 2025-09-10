@@ -16,7 +16,7 @@
     <!-- Block สำหรับ CSS เฉพาะหน้า -->
     {% block styles %}{% endblock %}
 </head>
-<body>
+<body data-current-user="{{ current_user }}">
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-title">
