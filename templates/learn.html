@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}การให้ความรู้ - ระบบดูแลสุขภาพ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- หน้าหลัก -->
+    <div id="home-page" class="page active">
+        <header class="header">
+            <h1>ระบบการเรียนรู้ด้วยตนเอง</h1>
+            <p>การให้ความรู้โดยการศึกษาและทำความเข้าใจด้วยตนเอง</p>
+        </header>
+
+        <div class="topics-grid">
+            <div class="topic-card" data-topic="topic1">
+                <div class="topic-icon">🧼</div>
+                <h3>การล้างมือ</h3>
+                <p>เรียนรู้ขั้นตอนการล้างมือที่ถูกต้องเพื่อป้องกันโรค</p>
+                <div class="progress-container">
+                    <div class="progress-text">ความคืบหน้า: <span class="progress-count">0/3</span></div>
+                    <div class="progress-bar">
+                        <div class="progress" data-progress="0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topic-card" data-topic="topic2">
+                <div class="topic-icon">😴</div>
+                <h3>การนอนหลับ</h3>
+                <p>เรียนรู้ความสำคัญของการนอนหลับและวิธีการนอนที่มีคุณภาพ</p>
+                <div class="progress-container">
+                    <div class="progress-text">ความคืบหน้า: <span class="progress-count">0/3</span></div>
+                    <div class="progress-bar">
+                        <div class="progress" data-progress="0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topic-card" data-topic="topic3">
+                <div class="topic-icon">🍽️</div>
+                <h3>โภชนาการ</h3>
+                <p>เรียนรู้หลักการโภชนาการและการรับประทานอาหารเพื่อสุขภาพ</p>
+                <div class="progress-container">
+                    <div class="progress-text">ความคืบหน้า: <span class="progress-count">0/3</span></div>
+                    <div class="progress-bar">
+                        <div class="progress" data-progress="0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าหัวข้อ -->
+    <div id="topic-page" class="page">
+        <div class="back-btn" onclick="showHomePage()">← กลับไปหน้าหลัก</div>
+        
+        <div class="topic-header">
+            <h1 id="topic-title">หัวข้อการเรียน</h1>
+            <p id="topic-description">คำอธิบายหัวข้อ</p>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-card" data-step="pretest">
+                <div class="step-icon">📝</div>
+                <h3>Step 1: แบบทดสอบก่อนเรียน</h3>
+                <p>ทดสอบความรู้เบื้องต้นก่อนเริ่มเรียน</p>
+                <button class="btn-step">เริ่มต้น</button>
+                <div class="step-status"></div>
+            </div>
+
+            <div class="step-card" data-step="learn">
+                <div class="step-icon">📚</div>
+                <h3>Step 2: เริ่มเรียน</h3>
+                <p>เรียนรู้เนื้อหาและทำความเข้าใจ</p>
+                <button class="btn-step">เริ่มต้น</button>
+                <div class="step-status"></div>
+            </div>
+
+            <div class="step-card" data-step="posttest">
+                <div class="step-icon">✅</div>
+                <h3>Step 3: แบบทดสอบหลังเรียน</h3>
+                <p>ทดสอบความเข้าใจหลังจากเรียนจบ</p>
+                <button class="btn-step">เริ่มต้น</button>
+                <div class="step-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าขั้นตอน -->
+    <div id="step-page" class="page">
+        <div class="back-btn" onclick="showTopicPage()">← กลับไปยังรายการขั้นตอน</div>
+        <div id="step-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/learn.css') }}">
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/learn.js') }}"></script>
+{% endblock %}

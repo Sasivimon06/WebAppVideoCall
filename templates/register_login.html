@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ลงทะเบียนผู้ใช้ใหม่</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+  <div class="register-card" id="registerForm">
+    <div class="form-header">
+      <div class="icon-circle">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <h2>ลงทะเบียน</h2>
+      <p>สร้างบัญชีผู้ใช้ใหม่</p>
+    </div>
+  
+    <form id="registerFormElement" method="POST" action="{{ url_for('register_login') }}">
+      <div class="input-group">
+        <label for="username">ชื่อผู้ใช้</label>
+        <div class="input-wrapper">
+          <i class="fas fa-user input-icon"></i>
+          <input type="text" id="username" name="username" placeholder="กรุณาใส่ชื่อผู้ใช้" required>
+        </div>
+      </div>
+  
+      <div class="input-group">
+        <label for="email">อีเมล</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" name="email" placeholder="กรุณาใส่อีเมล" required>
+        </div>
+      </div>
+  
+      <div class="input-group">
+        <label for="password">รหัสผ่าน</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="password" name="password" placeholder="กรุณาใส่รหัสผ่าน" required>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="confirm_password">ยืนยันรหัสผ่าน</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="confirm_password" name="confirm_password" placeholder="กรุณาใส่รหัสผ่าน" required>
+        </div>
+      </div>
+  
+      <!-- Flash message -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+      <button type="submit" class="login-btn">ลงทะเบียน</button>
+    </form>
+  
+    <div class="form-links">
+      <span>มีบัญชีแล้ว?</span>
+        <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}หน้าหลัก - ระบบดูแลสุขภาพ{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1 class="hero-title">ระบบดูแลสุขภาพแบบครบวงจร</h1>
+        <p class="hero-subtitle"></p>
+        
+        <div class="button-container">
+            <div class="service-card">
+                <div class="service-icon">📚</div>
+                <h3>การให้ความรู้</h3>
+                <p>ศึกษาและทำความเข้าใจด้วยตนเอง</p>
+                <a href="/learn" class="btn btn-primary">
+                    เริ่มเรียนรู้
+                </a>
+            </div>
+            
+            <div class="service-card">
+                <div class="service-icon">📹</div>
+                <h3>การติดตามผู้ป่วย</h3>
+                <p>ติดตามผู้ป่วยด้วยวิดีโอคอล</p>
+                <a href="/video_call" class="btn btn-secondary">
+                    เริ่มวิดีโอคอล
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
