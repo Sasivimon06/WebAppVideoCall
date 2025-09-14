@@ -3,7 +3,7 @@
 {% block title %}วิดีโอคอล - ระบบดูแลสุขภาพ{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/videocall.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/videocall_doctor.css') }}">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 {% endblock %}
 
@@ -24,12 +24,8 @@
             <div class="video-grid">
                 <!-- Host Video -->
                 <div class="video-container host-video">
-                    <div class="video-content">
-                        <div class="user-avatar"><i class="fas fa-user"></i></div>
-                        <p class="user-name">หมอ (Host)</p>
-                        <p class="user-subtitle">Dr. Smith</p>
-                    </div>
-                    <div class="video-label">Host</div>
+                    <video id="hostVideo" autoplay muted playsinline></video>
+                    <div class="video-label">คุณ</div>
                     <div class="video-off-indicator" id="hostVideoOff" style="display: none;">
                         <i class="fas fa-video-slash"></i>
                         <p>Camera Off</p>
@@ -38,22 +34,19 @@
 
                 <!-- Patient Video -->
                 <div class="video-container patient-video">
-                    <div class="video-content">
-                        <div class="user-avatar"><i class="fas fa-user"></i></div>
-                        <p class="user-name">ผู้ป่วย (Patient)</p>
-                        <p class="user-subtitle">Waiting to join...</p>
-                    </div>
-                    <div class="video-label">Patient</div>
+                    <video id="patientVideo" autoplay playsinline></video>
+                    <div class="video-label">ผู้ป่วย</div>
+                    <div class="user-name" id="patientName"></div>
                 </div>
             </div>
 
             <div class="call-controls">
                 <button class="control-btn" id="micBtn" onclick="toggleMic()">
-                    <i class="fas fa-microphone" id="micIcon"></i>
+                    <i class="fas fa-microphone-slash" id="micIcon"></i>
                 </button>
 
                 <button class="control-btn" id="videoBtn" onclick="toggleVideo()">
-                    <i class="fas fa-video" id="videoIcon"></i>
+                    <i class="fas fa-video-slash" id="videoIcon"></i>
                 </button>
             
                 <button class="call-btn start-call-btn" id="callBtn" onclick="toggleCall()">
@@ -116,5 +109,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/videocall.js') }}"></script>
+<script src="{{ url_for('static', filename='js/videocall_doctor.js') }}"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>  <!-- ถ้าใช้ PeerJS -->
 {% endblock %}

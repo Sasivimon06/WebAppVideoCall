@@ -2,6 +2,12 @@
 
 {% block title %}หน้าหลัก - ระบบดูแลสุขภาพ{% endblock %}
 
+{% block navbar_links %}
+    {% if role == 'admin' or role == 'patient' %}
+        <a href="{{ url_for('register_patient') }}" class="nav-link">ลงทะเบียนผู้ป่วย</a>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="hero-section">
     <div class="hero-content">
@@ -22,9 +28,24 @@
                 <div class="service-icon">📹</div>
                 <h3>การติดตามผู้ป่วย</h3>
                 <p>ติดตามผู้ป่วยด้วยวิดีโอคอล</p>
-                <a href="/video_call" class="btn btn-secondary">
-                    เริ่มวิดีโอคอล
-                </a>
+
+                {% if role == 'doctor' %}
+                    <a href="{{ url_for('videocall_doctor') }}" class="btn btn-secondary">
+                        เริ่มวิดีโอคอล
+                    </a>
+                {% elif role == 'patient' %}
+                    <a href="{{ url_for('videocall_patient') }}" class="btn btn-secondary">
+                        เริ่มวิดีโอคอล
+                    </a>
+                {% elif role == 'admin' %}
+                    <div class="admin-select-call">
+                        <select onchange="if(this.value) window.location.href=this.value;">
+                            <option value="">เลือกหน้าวิดีโอคอล</option>
+                            <option value="{{ url_for('videocall_doctor') }}">doctor</option>
+                            <option value="{{ url_for('videocall_patient') }}">patient</option>
+                        </select>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -23,8 +23,13 @@
                 <a href="/">ระบบดูแลสุขภาพ</a>
                 <!-- <a href="/education" class="nav-link">การให้ความรู้</a>
                 <a href="/video-call" class="nav-link">วิดีโอคอล</a> -->
+                
+                <!-- Block สำหรับปุ่ม/ลิงก์เฉพาะหน้า -->
+                {% block navbar_links %}
+                <!-- ถ้าไม่ override จะไม่แสดงปุ่มอื่น ๆ -->
+                {% endblock %}
             </div>
-
+            
             <div class="nav-links">
                 <span class="nav-user">
                     ผู้ใช้ : {{ session.get('user', 'guest') }}
@@ -42,9 +47,6 @@
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
-
-    <!-- JS หลัก -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
     <!-- Block สำหรับ JS เฉพาะหน้า -->
     {% block scripts %}{% endblock %}

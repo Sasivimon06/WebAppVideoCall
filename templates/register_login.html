@@ -34,6 +34,19 @@
           <input type="email" name="email" placeholder="กรุณาใส่อีเมล" required>
         </div>
       </div>
+
+      <div class="input-group">
+        <label for="role">ประเภทผู้ใช้</label>
+        <div class="input-wrapper-role select-wrapper">
+          <i class="fas fa-user-tag input-icon"></i>
+          <select id="role" name="role" required>
+            <option value="">-- เลือกประเภท --</option>
+            <option value="patient">ผู้ป่วย</option>
+            <option value="doctor">แพทย์</option>
+          </select>
+          <i class="fas fa-chevron-down select-arrow"></i>
+        </div>
+      </div>
   
       <div class="input-group">
         <label for="password">รหัสผ่าน</label>

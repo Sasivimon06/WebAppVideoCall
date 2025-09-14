@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}วิดีโอคอล - ระบบดูแลสุขภาพ{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/videocall_patient.css') }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-grid">
+        <!-- Video Call Section -->
+        <div class="video-section">
+            <div class="section-header">
+                <h2>Video Consultation</h2>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">ยังไม่ได้รับสาย</span>
+                </div>
+            </div>
+
+            <div class="video-grid">
+                <!-- Host / Doctor Video -->
+                <div class="video-container host-video">
+                    <video id="hostVideo" autoplay playsinline></video>
+                    <div class="video-label">แพทย์</div>
+                </div>
+
+                <!-- Patient Video -->
+                <div class="video-container patient-video">
+                    <video id="patientVideo" autoplay muted playsinline></video>
+                    <div class="video-label">คุณ</div>
+                </div>
+            </div>
+
+            <div class="call-controls">
+                <!-- ผู้ป่วยเริ่มปิดกล้อง/ไมค์ -->
+                <button class="control-btn" id="micBtn" onclick="toggleMic()">
+                    <i class="fas fa-microphone-slash" id="micIcon"></i>
+                </button>
+
+                <button class="control-btn" id="videoBtn" onclick="toggleVideo()">
+                    <i class="fas fa-video-slash" id="videoIcon"></i>
+                </button>
+
+                <!-- Answer Call Button -->
+                <button class="call-btn start-call-btn" id="answerBtn" onclick="answerCall()">
+                    <i class="fas fa-phone"></i> 
+                </button>
+
+                <!-- End Call -->
+                <button class="call-btn end-call-btn" id="endCallBtn" onclick="endCall()">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/videocall_patient.js') }}"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+{% endblock %}

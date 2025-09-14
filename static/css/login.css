@@ -14,6 +14,7 @@ body {
     justify-content: center;
     padding: 20px;
     line-height: 1.6;
+    overflow: hidden;    /* ปิด scroll ทั้งหน้า */
 }
 
 .container {
@@ -127,7 +128,7 @@ body {
 /* Form Header */
 .form-header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .form-header .icon-circle {
@@ -138,7 +139,7 @@ body {
     font-size: 2rem;
     font-weight: 700;
     color: #1f2937;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.2rem;
 }
 
 .form-header p {
@@ -148,7 +149,7 @@ body {
 
 /* Input Groups */
 .input-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .input-group label {
@@ -243,8 +244,22 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    margin-top: 8px;
+}
+.loading-spinner {
+    position: absolute;
+    display: none;
+    width: 24px;
+    height: 24px;
 }
 
+.login-btn.loading #btnText {
+    visibility: hidden; /* ซ่อนแต่ยังครองพื้นที่ */
+}
+
+.login-btn.loading .loading-spinner {
+    display: block;
+}
 .login-btn:hover {
     background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
     transform: translateY(-1px);
@@ -257,7 +272,7 @@ body {
 
 /* Form Links */
 .form-links {
-    margin-top: 1.5rem;
+    margin-top: 1.1rem;
     text-align: center;
 }
 
@@ -373,4 +388,55 @@ body {
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.2);
     color: #991b1b;
+}
+
+.input-wrapper-role {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 10px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  
+}
+
+/* Focus effect */
+.input-wrapper-role:focus-within {
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+  
+}
+
+/* ปรับ input-icon ให้ fix ตำแหน่ง */
+.select-wrapper .input-icon {
+  position: absolute;
+  left: 12px;
+  color: #000000;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+/* Select */
+.select-wrapper select {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 35px 12px 40px; /* <-- เว้นซ้าย 40px กันทับ icon */
+  outline: none;
+  appearance: none; /* ลบลูกศร default */
+  font-family: 'Sarabun', sans-serif;
+  color: #000000;
+}
+
+/* ไอคอนขวา */
+.select-wrapper .select-arrow {
+  position: absolute;
+  right: 12px;
+  color: #000000;
+  pointer-events: none;
+  font-size: 14px;
 }

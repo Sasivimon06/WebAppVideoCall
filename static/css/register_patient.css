@@ -1,0 +1,714 @@
+/* Patient Registration System CSS */
+/* Import Thai font */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #374151;
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  min-height: 100vh;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header */
+.header {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #d1fae5;
+  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.header-icon {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  padding: 0.75rem;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.header-icon svg {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+}
+
+.header-title {
+  flex: 1;
+}
+
+.header-title h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.header-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.patient-counter {
+  background: #bfdbfe;
+  color: #1e3a8a;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Form Card */
+.form-card {
+  background: white;
+  border-radius: 2rem; /* โค้งมนมากขึ้น */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin: 2rem auto;
+  transition: all 0.3s ease;
+  max-width: 800px;
+}
+
+.form-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.form-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  text-align: center; 
+  font-size: 1.3rem;
+}
+
+.form-icon {
+  background: #3b82f6;
+  padding: 0.75rem;
+  border-radius: 50%;
+}
+
+.form-icon svg {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+}
+
+.form-title h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.form-subtitle {
+  color: #6b7280;
+}
+
+/* Form Styles */
+.form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-row.two-columns {
+  grid-template-columns: 1fr 1fr; /* สองคอลัมน์เท่ากัน */
+}
+
+@media (min-width: 768px) {
+  .form-row.two-columns {
+    grid-template-columns: 1fr 1fr; /* แบ่งเป็น 2 คอลัมน์ */
+  }
+}
+
+.required {
+  color: #ef4444;
+}
+
+/* Form Card - โค้งมน */
+.form-card {
+    background: white;
+    border-radius: 2rem; /* เพิ่มความโค้ง */
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.input-group { 
+    margin-bottom: 0.8rem; 
+} 
+
+.input-group label { 
+    display: block; 
+    font-weight: 600; 
+    color: #374151; 
+    margin-bottom: 0.5rem; 
+    font-size: 1rem; 
+}
+
+/* Input wrapper & icon (เหมือนของคุณ) */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    background: #f9fafb;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.input-wrapper input:focus {
+    border-color: #2563eb; /* สีฟ้าอ่อน */
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-wrapper input:hover {
+    background: white;
+    border-color: #d1d5db;
+}
+
+.input-wrapper .input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.input-wrapper select {
+    width: 100%;
+    padding: 12px 12px 12px 40px; /* ใส่ padding ซ้ายเพื่อเว้นที่ไอคอน */
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    background: #f9fafb;
+    appearance: none; /* เอา arrow ของ browser ออก */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* hover / focus effect */
+.input-wrapper select:focus {
+    border-color: #2563eb;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-wrapper select:hover {
+    background: white;
+    border-color: #d1d5db;
+}
+
+.input-wrapper textarea {
+    width: 100%;
+    padding: 12px 12px 12px 40px; /* เว้นที่ซ้ายสำหรับไอคอน */
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    background: #f9fafb;
+    resize: vertical;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+/* focus / hover effect */
+.input-wrapper textarea:focus {
+    border-color: #2563eb;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-wrapper textarea:hover {
+    background: white;
+    border-color: #d1d5db;
+}
+
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.form-input.with-icon {
+  padding-left: 2.5rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-textarea.with-icon {
+  padding-left: 2.5rem;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: white;
+  cursor: pointer;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.error-message {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #ef4444;
+}
+
+/* Buttons */
+.button-group {
+  display: flex;
+  gap: 1rem;
+  padding-top: 1.5rem;
+}
+
+.btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    width: 20%;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Patient List */
+.patient-list-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.list-icon {
+  background: #2563eb;
+  padding: 0.5rem;
+  border-radius: 50%;
+}
+
+.list-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: white;
+}
+
+.list-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.patient-count {
+  background: #2563eb;
+  color: #3b82f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Table */
+.table-container {
+  overflow-x: auto;
+}
+
+.patient-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.patient-table th {
+  text-align: left;
+  padding: 1rem 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.patient-table td {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.patient-table tr:hover {
+  background: #f9fafb;
+  transform: scale(1.01);
+  transition: all 0.2s ease;
+}
+
+.patient-table tr:nth-child(even) {
+  background: rgba(249, 250, 251, 0.3);
+}
+
+/* Table cell content */
+.cell-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cell-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.hn-number {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.patient-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.phone-number {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+/* Gender badges */
+.gender-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.gender-male {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.gender-female {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.gender-other {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Delete button */
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.delete-btn:hover {
+  background: #fecaca;
+}
+
+.delete-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  color: #d1d5db;
+  margin: 0 auto 1rem;
+}
+
+.empty-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.empty-description {
+  color: #9ca3af;
+}
+
+/* Footer */
+.footer {
+  background: white;
+  border-top: 1px solid #d1fae5;
+  margin-top: 4rem;
+  padding: 1.5rem 0;
+  text-align: center;
+  color: #6b7280;
+}
+
+.footer p {
+  margin-bottom: 0.25rem;
+}
+
+.footer .tech-stack {
+  font-size: 0.875rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .form-card,
+  .patient-list-card {
+    padding: 1.5rem;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+  
+  .patient-table {
+    font-size: 0.875rem;
+  }
+  
+  .patient-table th,
+  .patient-table td {
+    padding: 0.5rem;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1fae5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a7f3d0;
+}
+
+/* Print styles */
+@media print {
+  .btn,
+  .delete-btn {
+    display: none;
+  }
+  
+  .form-card,
+  .patient-list-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+}
+
+/* เมื่อ submitc แล้ว */
+.register-card {
+    background: #ffffff;
+    border-radius: 2rem; /* โค้งมนเหมือนฟอร์ม */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.register-card h3 {
+    color: #2563eb; /* สีฟ้า */
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.register-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.register-card ul li {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.register-card .btn-primary {
+    margin-top: 1rem;
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 600;
+    text-align: center;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.register-card .btn-primary:hover {
+    background: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}

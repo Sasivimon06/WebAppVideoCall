@@ -21,27 +21,20 @@ function toggleConfirmPassword() {
 
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        eyeIcon.src = EYE_OFF_ICON; // ตาปิด
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
     } else {
         passwordInput.type = 'password';
-        eyeIcon.src = EYE_ICON; // ตาเปิด
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
     }
 }
 
-
 // Form submission with loading state
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+document.getElementById('loginFormElement').addEventListener('submit', function(e) {
     const submitBtn = document.getElementById('submitBtn');
-    const btnText = document.getElementById('btnText');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    
-    // Show loading state
     submitBtn.disabled = true;
-    btnText.style.display = 'none';
-    loadingSpinner.style.display = 'block';
-    
-    // Let the form submit naturally to Flask
-    // The loading state will be visible until the page reloads
+    submitBtn.classList.add('loading');
 });
 
 // Flash message system (for dynamically added messages)

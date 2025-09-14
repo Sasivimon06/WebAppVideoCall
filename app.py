@@ -1,16 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 import sqlite3
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, timedelta
 from functools import wraps
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
-import random, os, shutil
+import random
 from werkzeug.security import check_password_hash,generate_password_hash
 from dateutil.relativedelta import relativedelta
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit, join_room, leave_room
+from aiortc import RTCPeerConnection, RTCSessionDescription  # สำหรับ WebRTC
+import json
 
 app = Flask(__name__)
 app.secret_key = 'this_is_a_test_key_for_demo'
 RFID_API_KEY = "my_secure_token_only_for_demo"  
+socketio = SocketIO(app, cors_allowed_origins="*")
+pcs = {}  # Dictionary เพื่อเก็บ peer connections ตาม room/user
 
 OTP_EXPIRE_MINUTES = 3
 RESEND_WAIT_SECONDS = 60
@@ -29,30 +35,43 @@ app.config.update(
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.secret_key)
 
-""" with app.app_context():
-    try:
-        msg = Message("ทดสอบส่ง OTP", recipients=["friend@example.com"])
-        msg.body = "นี่คือข้อความทดสอบส่ง OTP"
-        mail.send(msg)
-        print("ส่งสำเร็จ ✅")
-    except Exception as e:
-        print("ส่งไม่สำเร็จ ❌", e) """
-
 # Database 
 def init_users_db():
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        is_verified INTEGER DEFAULT 0,
+        role TEXT NOT NULL,          -- 'admin', 'doctor', 'patient'
+        is_verified INTEGER DEFAULT 0,  -- doctor ต้องรอ admin อนุมัติ, patient และ admin = 1
         otp TEXT,
         otp_created_at TEXT
-    )''')
+    )
+    ''')
     conn.commit()
     conn.close()
+
+""" conn = sqlite3.connect('users.db')
+c = conn.cursor()
+
+init_users_db()
+
+username = 'admin'
+password = generate_password_hash('admin123456')
+email = 'eye.sasiwimon999@gmail.com'
+role = 'admin'
+is_verified = 1
+
+c.execute(
+    "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
+    (username, email, password, role, is_verified)
+)
+conn.commit()
+conn.close()
+print("Admin user created!") """
 
 def create_user(username, password, email):
     conn = sqlite3.connect('users.db')
@@ -73,19 +92,86 @@ def create_user(username, password, email):
     finally:
         conn.close()
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user' not in session:
-            flash("กรุณาเข้าสู่ระบบก่อน", "warning")
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+def login_required(role=None):
+    """
+    - ทุกคนต้องล็อกอิน
+    - admin เข้าถึงได้ทุกหน้า
+    - role อื่นเข้าถึงได้เฉพาะหน้าที่กำหนด
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user' not in session:
+                flash("กรุณาเข้าสู่ระบบก่อน", "warning")
+                return redirect(url_for('login'))
+
+            user_role = session.get('role')
+            if role and user_role != role and user_role != 'admin':
+                flash("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "danger")
+                return redirect(url_for('home'))
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+@app.route('/admin/add_doctor', methods=['GET', 'POST'])
+@login_required(role='admin')
+def add_doctor():
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        email = request.form['email'].strip().lower()
+        password = request.form['password'].strip()
+        
+        if username_or_email_exists(username, email):
+            flash("ชื่อผู้ใช้หรืออีเมลนี้มีอยู่แล้ว", "danger")
+            return redirect(url_for('add_doctor'))
+        
+        hashed_pw = generate_password_hash(password)
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute(
+            "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
+            (username, email, hashed_pw, 'doctor', 1)  # admin เพิ่ม = verified
+        )
+        conn.commit()
+        conn.close()
+        flash("เพิ่มบัญชีหมอเรียบร้อยแล้ว", "success")
+        return redirect(url_for('home'))
+
+    return render_template('admin_add_doctor.html')
+
+@app.route('/admin/add_user', methods=['GET', 'POST'])
+def add_user():
+    if session.get('role') != 'admin':
+        return "Unauthorized", 403
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = generate_password_hash(request.form['password'])
+        email = request.form['email']
+        role = request.form['role']  # doctor / patient
+        is_verified = 1  # admin อนุมัติแล้ว
+
+        with sqlite3.connect('users.db') as conn:
+            conn.execute(
+                "INSERT INTO users (username, password, email, role, is_verified) VALUES (?, ?, ?, ?, ?)",
+                (username, password, email, role, is_verified)
+            )
+        return redirect('/admin/dashboard')
+
+    return render_template('admin_add_user.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user' in session:
-        return redirect(url_for('home'))
+        # redirect ตาม role
+        role = session.get('role')
+        if role == 'doctor':
+            return redirect(url_for('doctor_home'))
+        elif role == 'patient':
+            return redirect(url_for('patient_home'))
+        else:
+            return redirect(url_for('home'))
 
     if 'login_attempts' not in session:
         session['login_attempts'] = 0
@@ -107,16 +193,22 @@ def login():
 
         user = get_user(username)
         if user:
-            hashed_password, is_verified = user[1], user[2]
-            if is_verified != 1:
-                flash("บัญชียังไม่ได้ยืนยันอีเมล", "warning")
+            user_id, hashed_password, role, is_verified = user
+            if role == 'doctor' and is_verified == 0:
+                flash("บัญชีหมอยังรอการอนุมัติจากแอดมิน", "warning")
             elif check_password_hash(hashed_password, password):
-                # ล็อกอินสำเร็จ ล้างตัวแปร session
-                session['user'] = user[0]
+                # ล็อกอินสำเร็จ
+                session['user'] = user_id
+                session['role'] = role
                 session['login_attempts'] = 0
                 session.permanent = True
-                print("Login success, session set:", session)
-                return redirect(url_for('home'))
+                # redirect ตาม role
+                if role == 'doctor':
+                    return redirect(url_for('doctor_home'))
+                elif role == 'patient':
+                    return redirect(url_for('patient_home'))
+                else:
+                    return redirect(url_for('home'))
             else:
                 session['login_attempts'] += 1
                 session['last_attempt_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -127,7 +219,6 @@ def login():
             flash("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", "danger")
 
     return render_template('login.html')
-
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
@@ -162,7 +253,7 @@ def get_user(username):
         return None  # ป้องกันกรณี username เป็น None หรือว่าง
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT username, password, is_verified FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT username, password, role, is_verified FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
     conn.close()
     return user
@@ -222,6 +313,7 @@ def register_login():
         email = request.form.get('email').strip().lower()
         password = request.form.get('password').strip()
         confirm_password = request.form.get('confirm_password').strip()
+        role = request.form.get('role')  # ฟอร์มมี select role: patient / doctor
 
         # ตรวจความถูกต้องของข้อมูลพื้นฐาน
         if not username or not email or not password or not confirm_password:
@@ -249,13 +341,19 @@ def register_login():
 
         # สร้าง OTP และเก็บข้อมูลใน session รอ confirm
         otp = generate_otp()
+        
+        is_verified = 1 if role == 'patient' else 0  # ผู้ป่วยยืนยันเอง, หมอต้องรอ admin
+
         session['register_pending_user'] = {
             'username': username,
             'password': generate_password_hash(password),
             'email': email,
             'otp': otp,
-            'otp_created_at': datetime.now().isoformat()
+            'otp_created_at': datetime.now().isoformat(),
+            'role': role,
+            'is_verified': is_verified
         }
+        
         print("Sending OTP to", email)
         send_otp_email(email, username, otp, purpose="register")
         flash("กรุณายืนยัน OTP ที่ส่งไปยังอีเมลของคุณ", "info")
@@ -338,21 +436,32 @@ def register_verify_otp():
         input_otp = request.form.get('otp')
 
         if input_otp == register_pending_user['otp']:
+            role = register_pending_user.get('role', 'patient')
+            is_verified = 1 if role == 'patient' else 0  # ผู้ป่วยยืนยันเอง, หมอต้องรอ admin
+
             # บันทึกผู้ใช้ลงฐานข้อมูลจริง
             conn = sqlite3.connect('users.db')
             c = conn.cursor()
             c.execute(
-                "INSERT INTO users (username, email, password, is_verified) VALUES (?, ?, ?, 1)",
-                (register_pending_user['username'], register_pending_user['email'], register_pending_user['password'])
+                "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
+                (
+                    register_pending_user['username'],
+                    register_pending_user['email'],
+                    register_pending_user['password'],
+                    role,
+                    is_verified
+                )
             )
             conn.commit()
             conn.close()
 
             session.pop('register_pending_user', None)
             flash("ยืนยันตัวตนสำเร็จ สามารถเข้าสู่ระบบได้แล้ว", "success")
+            if role == 'patient':
+                flash("สามารถเข้าสู่ระบบได้แล้ว", "success")
+            else:
+                flash("รอผู้ดูแลระบบอนุมัติบัญชี", "info")
             return redirect(url_for('login'))
-        else:
-            flash("รหัสยืนยันไม่ถูกต้อง กรุณาลองใหม่", "danger")
 
     # ส่ง timestamp ที่ OTP จะหมดอายุ (milliseconds for JS)
     expire_timestamp = int((datetime.now() + timedelta(minutes=OTP_EXPIRE_MINUTES)).timestamp() * 1000)
@@ -500,9 +609,101 @@ def reset_password():
     return render_template('reset_password.html')
 
 @app.route('/')
-@login_required
+@login_required()
 def home():
-    return render_template('home.html')
+    username = session.get('user')
+    role = session.get('role')  # เก็บ role แยกใน session
+
+    if not username:
+        flash("กรุณาเข้าสู่ระบบก่อน", "warning")
+        return redirect(url_for('login'))
+
+    if role == 'doctor':
+        video_link = url_for('video_call_doctor')
+    elif role == 'patient':
+        video_link = url_for('video_call_patient')
+    else:
+        video_link = None
+
+    return render_template('home.html', current_user=username, role=role, video_link=video_link)
+
+def init_patient_db():
+    with sqlite3.connect("patient.db") as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS patient (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                HN TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                birth_date INTEGER NOT NULL,
+                gender TEXT NOT NULL,
+                phone TEXT,
+                disease TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+        ''')
+        conn.commit()
+
+@app.route('/register_patient', methods=['GET', 'POST'])
+@login_required()
+def register_patient():
+    username = session.get('user')
+    if not username:
+        return jsonify({"error": "ไม่พบข้อมูลผู้ใช้"}), 401
+    
+    print(request.form)
+    if request.method == 'POST':
+        HN = request.form['HN']
+        name = request.form['name']
+        birth_date  = request.form['birthDate']
+        gender = request.form['gender']
+        phone = request.form.get('phone')
+        disease = request.form.get('disease', 'ไม่มี')
+
+        # ตรวจสอบค่าว่าง
+        if not HN or not name or not birth_date or not gender:
+            return jsonify({"error": "กรุณากรอกข้อมูลให้ครบ"}), 400
+        
+        # บันทึกลงฐานข้อมูล SQLite
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            # เช็ก HN ซ้ำ
+            cursor.execute("SELECT * FROM patient WHERE HN = ? AND username = ?", (HN, username))
+            if cursor.fetchone():
+                return jsonify({"error": "HN นี้มีอยู่แล้วในบัญชีคุณ"}), 400
+
+            cursor.execute('''
+                INSERT INTO patient (HN, name, birth_date, gender, phone, disease, username)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (HN, name, birth_date, gender, phone, disease, username))
+            conn.commit()
+        
+        # เก็บผู้ป่วยล่าสุดใน session
+        session['last_patient'] = {
+            "HN": HN,
+            "name": name,
+            "birthDate": birth_date,
+            "gender": gender,
+            "phone": phone,
+            "disease": disease
+        }
+        return jsonify(session['last_patient'])
+
+    # ตรวจสอบว่ามีผู้ป่วยล่าสุดใน session
+    last_patient = session.get('last_patient')  # ดึงผู้ป่วยล่าสุด
+    print("Last patient from session:", last_patient)
+    return render_template('register_patient.html', last_patient=last_patient)
+
+@app.route('/patients')
+@login_required()
+def get_patients():
+    username = session.get('user')
+    with sqlite3.connect("patient.db") as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM patient WHERE username = ? ORDER BY created_at DESC", (username,))
+        patients = [dict(row) for row in cursor.fetchall()]
+    return jsonify(patients)
 
 def init_learn_db():
     with sqlite3.connect("learn.db") as conn:
@@ -517,13 +718,11 @@ def init_learn_db():
                 completed_at TEXT
             );
         ''')
-    conn.commit()
 
 @app.route('/learn')
+@login_required()
 def learn():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    username = session['user']
+    username = session['user']  # session['user'] เป็น str ของ username
     return render_template('learn.html', current_user=username)
 
 def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
@@ -653,49 +852,57 @@ def static_files(filename):
         return "File not found", 404
 
 
-def init_patients_db():
-    with sqlite3.connect("patients.db") as conn:
+def init_followup_db():
+    with sqlite3.connect("followup.db") as conn:
         conn.execute('''
-            CREATE TABLE IF NOT EXISTS patients (
+            CREATE TABLE IF NOT EXISTS followup (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 patient_name TEXT NOT NULL,
                 HN TEXT NOT NULL,
-                followup_text TEXT NOT NULL,
-                followup_date TEXT NOT NULL
+                followup_text TEXT,
+                followup_date TEXT NOT NULL,
+                UNIQUE(HN, followup_date)  -- ป้องกัน HN + วันที่ซ้ำ
             )
         ''')
         conn.commit()
 
 # ฟังก์ชันดึง follow-ups
 def get_all_followups():
-    conn = sqlite3.connect("patients.db")
+    conn = sqlite3.connect("followup.db")
     conn.row_factory = sqlite3.Row
-    followups = conn.execute("SELECT * FROM patients ORDER BY followup_date DESC").fetchall()
+    followups = conn.execute("SELECT * FROM followup ORDER BY followup_date DESC").fetchall()
     conn.close()
     return [dict(f) for f in followups]
 
-@app.route('/video_call')
-def video_call():
-    return render_template('video_call.html')
 
-@app.route('/api/patients', methods=['POST'])
-def patients():
-    data = request.json
-    patient_name = data.get('patient_name')
-    HN = data.get('HN')
-    followup_text = data.get('followup_text')
-    followup_date = data.get('followup_date') or datetime.now().strftime("%Y-%m-%d")
+@app.route('/videocall/doctor')
+@login_required(role='doctor')
+def videocall_doctor():
+    return render_template('videocall_doctor.html')
 
-    try:
-        with sqlite3.connect("patients.db") as conn:
-            conn.execute('''
-                INSERT INTO patients (patient_name, HN, followup_text, followup_date)
-                VALUES (?, ?, ?, ?)
-            ''', (patient_name, HN, followup_text, followup_date))
-            conn.commit()
-        return jsonify({"success": True, "message": "บันทึกข้อมูลสำเร็จ!"})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+@app.route('/get_patient/<hn>', methods=['GET'])
+@login_required()
+def get_patient(HN):
+    with sqlite3.connect("patient.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT HN, name FROM patient WHERE HN=?", (hn,))
+        row = cursor.fetchone()
+        if row:
+            return jsonify({"HN": row[0], "name": row[1]})
+        return jsonify({"error": "ไม่พบผู้ป่วย"}), 404
+
+@app.route('/videocall_patient')
+@login_required()
+def videocall_patient():
+    # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
+    last_patient = session.get('last_patient')  # {'HN': ..., 'name': ..., ...}
+
+    if not last_patient:
+        # ถ้าไม่มีข้อมูลผู้ป่วย ให้ redirect ไปหน้า register หรือแจ้ง error
+        flash("ไม่พบข้อมูลผู้ป่วย กรุณาติดต่อเจ้าหน้าที่", "warning")
+        return redirect(url_for('home'))
+
+    return render_template('videocall_patient.html', patient=last_patient)
 
 @app.route('/api/save_patient', methods=['POST'])
 def save_patient():
@@ -704,16 +911,26 @@ def save_patient():
         name = data.get('name')
         HN = data.get('HN')
         followup_text = data.get('notes', '')
-        followup_date = data.get('followUpDate', datetime.now().strftime("%Y-%m-%d"))
+        followup_date = data.get('followUpDate') or datetime.now().strftime("%Y-%m-%d")
 
         if not name or not HN:
             return jsonify({'success': False, 'error': 'ชื่อ-สกุล และ HN เป็นค่าจำเป็น'}), 400
 
-        with sqlite3.connect("patients.db") as conn:
-            conn.execute('''
-                INSERT INTO patients (patient_name, HN, followup_text, followup_date)
-                VALUES (?, ?, ?, ?)
-            ''', (name, HN, followup_text, followup_date))
+        with sqlite3.connect("followup.db") as conn:
+            cursor = conn.cursor()
+            try:
+                # พยายาม insert
+                cursor.execute('''
+                    INSERT INTO followup (patient_name, HN, followup_text, followup_date)
+                    VALUES (?, ?, ?, ?)
+                ''', (name, HN, followup_text, followup_date))
+            except sqlite3.IntegrityError:
+                # ถ้า HN + followup_date ซ้ำ → update แทน
+                cursor.execute('''
+                    UPDATE followup
+                    SET followup_text = ?, patient_name = ?
+                    WHERE HN = ? AND followup_date = ?
+                ''', (followup_text, name, HN, followup_date))
             conn.commit()
 
         updated_at = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -723,37 +940,51 @@ def save_patient():
         print("Error:", e)
         return jsonify({'success': False, 'error': 'เกิดข้อผิดพลาดในการบันทึกข้อมูล'}), 500
 
-""" @app.route('/api/start-call', methods=['POST'])
-def start_call():
-    patient_id = request.json.get('patient_id')
-    patient = next((p for p in patients if p['id'] == patient_id), None)
+@app.route('/api/followups', methods=['GET'])
+def get_followups():
+    try:
+        followups = get_all_followups()
+        return jsonify({'success': True, 'followups': followups})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+@socketio.on('join')
+def on_join(data):
+    room = data['room']  # e.g., 'consultation_room_123' จาก HN หรือ session ID
+    join_room(room)
+    emit('user_joined', {'username': data['username']}, room=room)
 
-    if patient:
-        return jsonify({
-            "success": True,
-            "message": f"เริ่มการโทรกับ {patient['name']}",
-            "call_id": f"call_{patient_id}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        })
-    else:
-        return jsonify({
-            "success": False,
-            "message": "ไม่พบข้อมูลผู้ป่วย"
-        }) """
+@socketio.on('offer')  # เมื่อ caller ส่ง offer SDP
+def on_offer(data):
+    room = data['room']
+    emit('offer_received', data, room=room)  # ส่ง offer ไปยัง callee
 
-""" @app.route('/api/end-call', methods=['POST'])
-def end_call():
-    call_id = request.json.get('call_id')
-    return jsonify({
-        "success": True,
-        "message": "จบการโทรเรียบร้อย",
-        "call_id": call_id
-    }) """
+@socketio.on('answer')
+def on_answer(data):
+    room = data['room']
+    emit('answer_received', data, room=room)
+
+@socketio.on('ice_candidate')
+def on_ice_candidate(data):
+    room = data['room']
+    emit('ice_candidate_received', data, room=room)
+
+@socketio.on('leave')
+def on_leave(data):
+    room = data['room']
+    emit('user_left', {'username': 'User'}, room=room)
+
+@socketio.on('disconnect')
+def on_disconnect():
+    # จัดการ disconnection
+    pass
 
 if __name__ == '__main__':
     # เตรียมฐานข้อมูลสำหรับผู้ใช้งานและอุปกรณ์
     init_users_db()
-    init_patients_db()
+    init_patient_db()
     init_learn_db()
+    init_followup_db()
 
     # เริ่มต้นเซิร์ฟเวอร์ Flask
     app.run(

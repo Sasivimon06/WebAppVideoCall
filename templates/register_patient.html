@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}ลงทะเบียนผู้ป่วย{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/register_patient.css') }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+        <!-- summary card จะโชว์ถ้ามี last_patient -->
+    {% if last_patient %}
+        <div id="summaryCard" class="register-card">
+            <h3>ข้อมูลผู้ป่วยล่าสุด</h3>
+            <ul>
+                <li><strong>HN:</strong> {{ last_patient.HN }}</li>
+                <li><strong>ชื่อ-สกุล:</strong> {{ last_patient.name }}</li>
+                <li><strong>วันเกิด:</strong> {{ last_patient.birthDate }}</li>
+                <li><strong>เพศ:</strong> {{ last_patient.gender }}</li>
+                <li><strong>โทรศัพท์:</strong> {{ last_patient.phone }}</li>
+                <li><strong>โรคประจำตัว:</strong> {{ last_patient.disease }}</li>
+            </ul>
+        </div>
+    {% else %}
+        <!-- form card จะโชว์ก็ต่อเมื่อ last_patient ไม่มี -->
+        <div class="form-card fade-in" id="formCard">
+            <form id="patientForm" action="{{ url_for('register_patient') }}" method="POST">
+                <!-- HN -->
+                <div class="form-header"> <h2>ลงทะเบียนผู้ป่วยใหม่</h2> </div>
+                <div class="input-group">
+                    <label>หมายเลข HN <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa fa-id-card input-icon"></i>
+                        <input type="text" name="HN" id="HN" placeholder="เช่น 1234567890" required>
+                    </div>
+                </div>
+
+                <!-- Name -->
+                <div class="input-group">
+                    <label>ชื่อ-สกุล <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fa fa-user input-icon"></i>
+                        <input type="text" name="name" id="name" placeholder="ชื่อ-สกุล" required>
+                    </div>
+                </div>
+
+                <!-- Birth & Gender -->
+                <div class="form-row two-columns">
+                    <div class="input-group">
+                        <label>วันเกิด <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa fa-calendar input-icon"></i>
+                            <input type="date" name="birthDate" id="birthDate" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>เพศ <span class="required">*</span></label>
+                        <div class="input-wrapper">
+                            <i class="fa fa-venus-mars input-icon"></i>
+                            <select name="gender" id="gender" required>
+                                <option value="">เลือกเพศ</option>
+                                <option value="ชาย">ชาย</option>
+                                <option value="หญิง">หญิง</option>
+                                <option value="other">อื่นๆ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phone -->
+                <div class="input-group">
+                    <label>เบอร์โทรศัพท์</label>
+                    <div class="input-wrapper">
+                        <i class="fa fa-phone input-icon"></i>
+                        <input type="tel" name="phone" id="phone" placeholder="0812345678">
+                    </div>
+                </div>
+
+                <!-- Chronic Disease -->
+                <div class="input-group">
+                    <label>โรคประจำตัว</label>
+                    <div class="input-wrapper">
+                        <i class="fa fa-heartbeat input-icon"></i>
+                        <textarea name="disease" id="disease" placeholder="ระบุโรคประจำตัว (ถ้าไม่มีใส่ 'ไม่มี')" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/register_patient.js') }}"></script>
+{% endblock %}
