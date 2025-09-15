@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}อนุมัติหมอ{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>หมอรอการอนุมัติ</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if doctors %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doctor in doctors %}
+                    <tr>
+                        <td>{{ doctor[1] }}</td>
+                        <td>{{ doctor[2] }}</td>
+                        <td>
+                            <form action="{{ url_for('approve_doctor', doctor_id=doctor[0]) }}" method="POST">
+                                <button type="submit" class="btn-approve">อนุมัติ</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>ไม่มีหมอรออนุมัติ</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+<style>
+.container {
+    padding: 2rem;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+.table th, .table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem 1rem;
+    text-align: left;
+}
+.table th {
+    background: #2575fc;
+    color: white;
+}
+.btn-approve {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.btn-approve:hover {
+    background: #218838;
+}
+.flash.success {
+    background: #28a745;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    color: white;
+    text-align: center;
+}
+</style>

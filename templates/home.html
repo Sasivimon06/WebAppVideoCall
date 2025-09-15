@@ -6,6 +6,10 @@
     {% if role == 'admin' or role == 'patient' %}
         <a href="{{ url_for('register_patient') }}" class="nav-link">ลงทะเบียนผู้ป่วย</a>
     {% endif %}
+
+    {% if role == 'admin' %}
+        <a href="{{ url_for('pending_doctors') }}" class="nav-link">อนุมัติหมอ</a>
+    {% endif %}
 {% endblock %}
 
 {% block content %}

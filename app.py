@@ -114,31 +114,26 @@ def login_required(role=None):
         return decorated_function
     return decorator
 
-@app.route('/admin/add_doctor', methods=['GET', 'POST'])
+@app.route('/admin/pending_doctors')
 @login_required(role='admin')
-def add_doctor():
-    if request.method == 'POST':
-        username = request.form['username'].strip()
-        email = request.form['email'].strip().lower()
-        password = request.form['password'].strip()
-        
-        if username_or_email_exists(username, email):
-            flash("ชื่อผู้ใช้หรืออีเมลนี้มีอยู่แล้ว", "danger")
-            return redirect(url_for('add_doctor'))
-        
-        hashed_pw = generate_password_hash(password)
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
-        c.execute(
-            "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
-            (username, email, hashed_pw, 'doctor', 1)  # admin เพิ่ม = verified
-        )
-        conn.commit()
-        conn.close()
-        flash("เพิ่มบัญชีหมอเรียบร้อยแล้ว", "success")
-        return redirect(url_for('home'))
+def pending_doctors():
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("SELECT id, username, email FROM users WHERE role = 'doctor' AND is_verified = 0")
+    doctors = c.fetchall()
+    conn.close()
+    return render_template('pending_doctors.html', doctors=doctors)
 
-    return render_template('admin_add_doctor.html')
+@app.route('/admin/approve_doctor/<int:doctor_id>', methods=['POST'])
+@login_required(role='admin')
+def approve_doctor(doctor_id):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("UPDATE users SET is_verified = 1 WHERE id = ?", (doctor_id,))
+    conn.commit()
+    conn.close()
+    flash("อนุมัติบัญชีหมอเรียบร้อยแล้ว", "success")
+    return redirect(url_for('pending_doctors'))
 
 @app.route('/admin/add_user', methods=['GET', 'POST'])
 def add_user():
@@ -360,6 +355,7 @@ def register_login():
         return redirect(url_for('register_verify_otp'))
 
     return render_template('register_login.html')
+
 
 # ส่ง OTP อีกรอบหน้า register_login
 @app.route('/resend_register_otp', methods=['POST'])
