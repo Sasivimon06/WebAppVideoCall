@@ -615,9 +615,9 @@ def home():
         return redirect(url_for('login'))
 
     if role == 'doctor':
-        video_link = url_for('video_call_doctor')
+        video_link = url_for('videocall_doctor')
     elif role == 'patient':
-        video_link = url_for('video_call_patient')
+        video_link = url_for('videocall_patient')
     else:
         video_link = None
 
@@ -645,36 +645,46 @@ def init_patient_db():
 def register_patient():
     username = session.get('user')
     if not username:
+        flash("ไม่พบข้อมูลผู้ใช้", "error")
         return jsonify({"error": "ไม่พบข้อมูลผู้ใช้"}), 401
     
     print(request.form)
+
     if request.method == 'POST':
         HN = request.form['HN']
         name = request.form['name']
-        birth_date  = request.form['birthDate']
+        birth_date = request.form['birthDate']
         gender = request.form['gender']
         phone = request.form.get('phone')
         disease = request.form.get('disease', 'ไม่มี')
 
         # ตรวจสอบค่าว่าง
         if not HN or not name or not birth_date or not gender:
+            flash("กรุณากรอกข้อมูลให้ครบ", "error")
             return jsonify({"error": "กรุณากรอกข้อมูลให้ครบ"}), 400
         
         # บันทึกลงฐานข้อมูล SQLite
         with sqlite3.connect("patient.db") as conn:
             cursor = conn.cursor()
-            # เช็ก HN ซ้ำ
-            cursor.execute("SELECT * FROM patient WHERE HN = ? AND username = ?", (HN, username))
+            # 🔹 เช็ก HN ซ้ำ
+            cursor.execute(
+                "SELECT 1 FROM patient WHERE HN = ? AND username = ?",
+                (HN, username)
+            )
             if cursor.fetchone():
+                flash("HN นี้มีอยู่แล้วในบัญชีคุณ", "info")
                 return jsonify({"error": "HN นี้มีอยู่แล้วในบัญชีคุณ"}), 400
-
-            cursor.execute('''
-                INSERT INTO patient (HN, name, birth_date, gender, phone, disease, username)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (HN, name, birth_date, gender, phone, disease, username))
+                
+            # 🔹 ถ้าไม่มี → insert ใหม่
+            cursor.execute(
+                "INSERT INTO patient (HN, name, birth_date, gender, phone, disease, username) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (HN, name, birth_date, gender, phone, disease, username)
+            )
             conn.commit()
         
-        # เก็บผู้ป่วยล่าสุดใน session
+        flash("บันทึกผู้ป่วยใหม่เรียบร้อยแล้ว", "success")
+
         session['last_patient'] = {
             "HN": HN,
             "name": name,
@@ -683,12 +693,59 @@ def register_patient():
             "phone": phone,
             "disease": disease
         }
-        return jsonify(session['last_patient'])
 
-    # ตรวจสอบว่ามีผู้ป่วยล่าสุดใน session
-    last_patient = session.get('last_patient')  # ดึงผู้ป่วยล่าสุด
-    print("Last patient from session:", last_patient)
+        return jsonify(session['last_patient'])
+    
+    # ตรวจสอบ session ก่อน
+    if 'last_patient' in session:
+        last_patient = session['last_patient']
+        # เช็กว่ามีอยู่จริงใน DB
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM patient WHERE HN = ? AND username = ?", 
+                           (last_patient['HN'], username))
+            if not cursor.fetchone():
+                last_patient = None
+                session.pop('last_patient', None)
+
+    # ถ้าไม่มีใน session → ดึงจาก DB ล่าสุด
+    if not last_patient:
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT HN, name, birth_date, gender, phone, disease "
+                "FROM patient WHERE username = ? ORDER BY rowid DESC LIMIT 1",
+                (username,)
+            )
+            row = cursor.fetchone()
+            if row:
+                last_patient = {
+                    "HN": row[0],
+                    "name": row[1],
+                    "birthDate": row[2],
+                    "gender": row[3],
+                    "phone": row[4],
+                    "disease": row[5]
+                }
+                session['last_patient'] = last_patient
+
     return render_template('register_patient.html', last_patient=last_patient)
+    
+    """ # GET request
+    # ตรวจสอบว่ามีผู้ป่วยล่าสุดใน session
+    last_patient = session.get('last_patient')
+    if last_patient:
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM patient WHERE HN = ? AND username = ?", 
+                           (last_patient['HN'], username))
+            if not cursor.fetchone():
+                # ถ้าไม่มีใน DB แล้ว → ลบออกจาก session
+                session.pop('last_patient', None)
+                last_patient = None
+
+    print("Last patient from session:", last_patient) """
+    return render_template('register_patient.html')
 
 @app.route('/patients')
 @login_required()

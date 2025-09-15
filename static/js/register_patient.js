@@ -1,143 +1,57 @@
 class PatientRegistration {
-    constructor() {
-        this.patients = [];
-        this.lastPatient = null;
-        this.init();
+    constructor(lastPatient) {
+        this.lastPatient = lastPatient || null;
+
+        this.bindEvents();
+        this.showLastPatient();
     }
 
-    async init() {
-        await this.fetchPatients();   // โหลดข้อมูลผู้ป่วยจาก Flask
-        this.bindEvents();
-        this.updatePatientCount();
-        this.updatePatientList();
+    // Bind form submit event
+    bindEvents() {
+        const form = document.getElementById('patientForm');
+        if (form) form.addEventListener('submit', e => this.handleSubmit(e));
+    }
 
-        // ถ้ามีผู้ป่วยล่าสุด ให้โชว์ summary card และซ่อน form
-        const summaryCard = document.getElementById('summaryCard');
-        const formCard = document.getElementById('formCard');
+    // แสดง summary card ถ้ามีผู้ป่วยล่าสุด
+    showLastPatient() {
+        if (this.lastPatient) {
+            const summaryCard = document.getElementById('formnewPatient');
+            const formCard = document.getElementById('formCard');
 
-        try {
-            const res = await fetch('/register_patient', { method: 'GET', credentials: 'same-origin' });
-            if (res.ok) {
-                const html = await res.text();
-                // ตรวจสอบว่ามี last_patient จาก template
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const lastPatientData = doc.querySelector('#lastPatientData'); // ใส่ div ซ่อนใน template
-                if (lastPatientData) {
-                    this.lastPatient = JSON.parse(lastPatientData.textContent);
-                    summaryCard.style.display = 'block';
-                    formCard.style.display = 'none';
-                    this.showPatientCard(this.lastPatient);
-                }
+            if (summaryCard) {
+                summaryCard.style.display = 'block';
+                summaryCard.innerHTML = `
+                    <h3>ข้อมูลผู้ป่วยล่าสุด</h3>
+                    <ul>
+                        <li><strong>HN:</strong> ${this.lastPatient.HN}</li>
+                        <li><strong>ชื่อ-สกุล:</strong> ${this.lastPatient.name}</li>
+                        <li><strong>วันเกิด:</strong> ${this.lastPatient.birthDate}</li>
+                        <li><strong>เพศ:</strong> ${this.lastPatient.gender}</li>
+                        <li><strong>โทรศัพท์:</strong> ${this.lastPatient.phone}</li>
+                        <li><strong>โรคประจำตัว:</strong> ${this.lastPatient.disease}</li>
+                    </ul>
+                `;
             }
-        } catch (err) {
-            console.error(err);
+
+            if (formCard) formCard.style.display = 'none';
         }
     }
 
-    bindEvents() {
-        const form = document.getElementById('patientForm');
-        form.addEventListener('submit', (e) => this.handleSubmit(e));
-    }
-
+    // ดึงข้อมูลจาก form และ sanitize
     getSanitizedFormData() {
         const form = document.getElementById('patientForm');
-        let formData = new FormData(form);
-
+        const formData = new FormData(form);
         return {
             HN: formData.get('HN').trim(),
             name: formData.get('name').trim(),
             birthDate: formData.get('birthDate').trim(),
             gender: formData.get('gender').trim(),
-            phone: formData.get('phone').trim().replace(/'/g, ''), // ลบ ' เกิน
-            disease: formData.get('disease').trim() || 'ไม่มี'
+            phone: (formData.get('phone') || '').trim().replace(/'/g, ''),
+            disease: (formData.get('disease') || '').trim() || 'ไม่มี'
         };
     }
 
-    async handleSubmit(e) {
-        e.preventDefault();
-        if (!this.validateForm()) return;
-
-        const patientData = this.getSanitizedFormData();
-        let sanitizedData = new FormData();
-        Object.keys(patientData).forEach(key => sanitizedData.append(key, patientData[key]));
-
-        const response = await fetch('/register_patient', {
-            method: 'POST',
-            body: sanitizedData,
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            alert('เกิดข้อผิดพลาด: ' + (err.error || 'ไม่ทราบสาเหตุ'));
-            return;
-        }
-
-        const patient = await response.json();
-        this.lastPatient = patient;
-
-        // ซ่อน form และโชว์ summary card
-        this.lastPatient = patient;
-        document.getElementById('formCard').style.display = 'none';
-        document.getElementById('summaryCard').style.display = 'block';
-        this.showPatientCard(patient);
-        this.updatePatientCount();
-        this.updatePatientList();
-        this.showSuccessMessage();
-    }
-
-    showPatientCard(patient) {
-        const summaryCard = document.getElementById('summaryCard');
-        summaryCard.innerHTML = `
-            <h3>ข้อมูลผู้ป่วยล่าสุด</h3>
-            <ul>
-                <li><strong>HN:</strong> ${patient.HN}</li>
-                <li><strong>ชื่อ-สกุล:</strong> ${patient.name}</li>
-                <li><strong>วันเกิด:</strong> ${this.formatDate(patient.birthDate)}</li>
-                <li><strong>เพศ:</strong> ${this.getGenderText(patient.gender)}</li>
-                <li><strong>โทรศัพท์:</strong> ${patient.phone}</li>
-                <li><strong>โรคประจำตัว:</strong> ${patient.disease}</li>
-            </ul>
-        `;
-    }
-
-
-    async fetchPatients() {
-        try {
-            const response = await fetch('/patients', { credentials: 'same-origin' });
-            if (!response.ok) throw new Error("โหลดรายชื่อผู้ป่วยล้มเหลว");
-            this.patients = await response.json();
-        } catch (err) {
-            console.error(err);
-            this.patients = [];
-        }
-    }
-
-    updatePatientCount() {
-        const count = this.patients.length;
-        const el = document.getElementById('patientCount');
-        if (el) el.textContent = count;
-    }
-
-    updatePatientList() {
-        const tableBody = document.getElementById('patientTableBody');
-        if (!tableBody) return;
-        tableBody.innerHTML = "";
-        this.patients.forEach(p => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${p.HN}</td>
-                <td>${p.name}</td>
-                <td>${this.formatDate(p.birthDate)}</td>
-                <td>${this.getGenderText(p.gender)}</td>
-                <td>${p.phone}</td>
-                <td>${p.disease}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
-
+    // Validate form
     validateForm() {
         const data = this.getSanitizedFormData();
         let isValid = true;
@@ -147,50 +61,79 @@ class PatientRegistration {
         if (!data.name) { this.showError('nameError', 'กรุณากรอกชื่อ-สกุล'); isValid = false; }
         if (!data.birthDate) { this.showError('birthDateError', 'กรุณาเลือกวันเกิด'); isValid = false; }
         if (!data.gender) { this.showError('genderError', 'กรุณาเลือกเพศ'); isValid = false; }
-        if (!data.phone) { this.showError('phoneError', 'กรุณากรอกเบอร์โทรศัพท์'); isValid = false; }
 
         return isValid;
     }
 
-    showError(elementId, message) {
-        const el = document.getElementById(elementId);
-        if(el) el.textContent = message;
+    showError(id, msg) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = msg;
     }
 
     clearErrors() {
         document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
     }
 
-    resetForm() {
-        document.getElementById('patientForm').reset();
-        this.clearErrors();
-    }
+    // Handle form submit
+    async handleSubmit(e) {
+        e.preventDefault();
 
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric'});
-    }
+        if (!this.validateForm()) return;
 
-    getGenderText(gender) {
-        switch(gender){
-            case 'male': return 'ชาย';
-            case 'female': return 'หญิง';
-            case 'other': return 'อื่นๆ';
-            default: return gender;
+        const data = this.getSanitizedFormData();
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+        try {
+            const res = await fetch('/register_patient', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            const result = await res.json();
+
+            if (!res.ok) {
+                alert(result.error || 'เกิดข้อผิดพลาด');
+                return;
+            }
+
+            this.showSuccessMessage();
+
+            setTimeout(() => {
+                window.location.href = '/'; // redirect หลังบันทึก
+            }, 2500);
+
+        } catch (err) {
+            console.error(err);
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
         }
     }
 
+    // แสดง toast success
     showSuccessMessage() {
         const message = document.createElement('div');
-        message.style.cssText = `position:fixed; top:20px; right:20px; background:#10b981; color:white; padding:1rem 1.5rem; border-radius:0.5rem; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000;`;
+        message.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+        `;
         message.textContent = 'บันทึกข้อมูลเรียบร้อยแล้ว!';
         document.body.appendChild(message);
 
         setTimeout(() => {
             document.body.removeChild(message);
-        }, 3000);
+        }, 2500);
     }
 }
 
 // Initialize
-const patientSystem = new PatientRegistration();
+document.addEventListener('DOMContentLoaded', () => {
+    const patientSystem = new PatientRegistration(window.last_patient);
+});
