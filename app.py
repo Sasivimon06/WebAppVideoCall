@@ -162,9 +162,9 @@ def login():
         # redirect ตาม role
         role = session.get('role')
         if role == 'doctor':
-            return redirect(url_for('doctor_home'))
+            return redirect(url_for('home'))
         elif role == 'patient':
-            return redirect(url_for('patient_home'))
+            return redirect(url_for('home'))
         else:
             return redirect(url_for('home'))
 
@@ -199,9 +199,9 @@ def login():
                 session.permanent = True
                 # redirect ตาม role
                 if role == 'doctor':
-                    return redirect(url_for('doctor_home'))
+                    return redirect(url_for('home'))
                 elif role == 'patient':
-                    return redirect(url_for('patient_home'))
+                    return redirect(url_for('home'))
                 else:
                     return redirect(url_for('home'))
             else:
@@ -623,6 +623,22 @@ def home():
 
     return render_template('home.html', current_user=username, role=role, video_link=video_link)
 
+""" # หน้า Home สำหรับ Doctor
+@app.route('/doctor/home')
+@login_required(role='doctor')
+def doctor_home():
+    username = session.get('user')
+    # โหลดข้อมูลเฉพาะหมอ เช่น รายชื่อผู้ป่วย, นัดหมาย ฯลฯ
+    return render_template('doctor_home.html', current_user=username)
+
+# หน้า Home สำหรับ Patient
+@app.route('/patient/home')
+@login_required(role='patient')
+def patient_home():
+    username = session.get('user')
+    # โหลดข้อมูลเฉพาะผู้ป่วย เช่น ประวัติ, วิดีโอคอลกับหมอ ฯลฯ
+    return render_template('patient_home.html', current_user=username)
+ """
 def init_patient_db():
     with sqlite3.connect("patient.db") as conn:
         conn.execute('''
@@ -696,6 +712,7 @@ def register_patient():
 
         return jsonify(session['last_patient'])
     
+    last_patient = None
     # ตรวจสอบ session ก่อน
     if 'last_patient' in session:
         last_patient = session['last_patient']
@@ -730,22 +747,6 @@ def register_patient():
                 session['last_patient'] = last_patient
 
     return render_template('register_patient.html', last_patient=last_patient)
-    
-    """ # GET request
-    # ตรวจสอบว่ามีผู้ป่วยล่าสุดใน session
-    last_patient = session.get('last_patient')
-    if last_patient:
-        with sqlite3.connect("patient.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM patient WHERE HN = ? AND username = ?", 
-                           (last_patient['HN'], username))
-            if not cursor.fetchone():
-                # ถ้าไม่มีใน DB แล้ว → ลบออกจาก session
-                session.pop('last_patient', None)
-                last_patient = None
-
-    print("Last patient from session:", last_patient) """
-    return render_template('register_patient.html')
 
 @app.route('/patients')
 @login_required()
@@ -952,7 +953,7 @@ def videocall_patient():
 
     if not last_patient:
         # ถ้าไม่มีข้อมูลผู้ป่วย ให้ redirect ไปหน้า register หรือแจ้ง error
-        flash("ไม่พบข้อมูลผู้ป่วย กรุณาติดต่อเจ้าหน้าที่", "warning")
+        flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเริ่มวิดีโอคอล", "error")
         return redirect(url_for('home'))
 
     return render_template('videocall_patient.html', patient=last_patient)

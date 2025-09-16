@@ -116,7 +116,8 @@ class PatientRegistration {
         message.style.cssText = `
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             background: #10b981;
             color: white;
             padding: 1rem 1.5rem;
