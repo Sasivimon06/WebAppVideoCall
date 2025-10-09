@@ -11,44 +11,30 @@ const videoBtn = document.getElementById('videoBtn');
 const callBtn = document.getElementById('callBtn');
 const endCallBtn = document.getElementById('endCallBtn');
 const hnInput = document.getElementById('HN');
-<<<<<<< HEAD
 const nameInput = document.getElementById('name');
 const patientForm = document.getElementById('patientForm');
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 const socket = io();
 let localStream = null;
 let peerConnection = null;
 let isCallActive = false;
-<<<<<<< HEAD
 let currentRoom = null;
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 // ICE Config
 const config = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-<<<<<<< HEAD
         { urls: 'stun:stun1.l.google.com:19302' },
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' }
     ]
 };
 
 // ---------------------
-<<<<<<< HEAD
 // เตรียม localStream
-=======
-// เตรียม localStream แต่ไม่เปิด track
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 // ---------------------
 async function initLocalStream() {
     if (localStream) return;
     try {
-<<<<<<< HEAD
         localStream = await navigator.mediaDevices.getUserMedia({ 
             video: { width: 1280, height: 720 }, 
             audio: true 
@@ -66,20 +52,6 @@ async function initLocalStream() {
     } catch (err) {
         console.error('[ERROR] Cannot access camera/microphone:', err);
         showMessage('ไม่สามารถเข้าถึงกล้องหรือไมโครโฟนได้', 'error');
-=======
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideo.srcObject = localStream;
-
-        // เริ่มต้นปิดทั้งกล้องและไมค์
-        localStream.getAudioTracks()[0].enabled = false;
-        localStream.getVideoTracks()[0].enabled = false;
-
-        updateMicIcon();
-        updateVideoIcon();
-    } catch (err) {
-        console.error(err);
-        alert('ไม่สามารถเข้าถึงกล้องหรือไมโครโฟนได้');
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     }
 }
 
@@ -87,28 +59,20 @@ async function initLocalStream() {
 // Toggle Mic / Video
 // ---------------------
 function toggleMic() {
-<<<<<<< HEAD
     if (!localStream) {
         showMessage('กรุณาเปิดกล้องก่อน', 'warning');
         return;
     }
-=======
-    if (!localStream) return;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     const track = localStream.getAudioTracks()[0];
     track.enabled = !track.enabled;
     updateMicIcon();
 }
 
 function toggleVideo() {
-<<<<<<< HEAD
     if (!localStream) {
         showMessage('กรุณาเปิดกล้องก่อน', 'warning');
         return;
     }
-=======
-    if (!localStream) return;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     const track = localStream.getVideoTracks()[0];
     track.enabled = !track.enabled;
     updateVideoIcon();
@@ -116,19 +80,13 @@ function toggleVideo() {
 
 function updateMicIcon() {
     const icon = document.getElementById('micIcon');
-<<<<<<< HEAD
     const isEnabled = localStream.getAudioTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
     micBtn.classList.toggle('active', isEnabled);
-=======
-    icon.classList.toggle('fa-microphone-slash', !localStream.getAudioTracks()[0].enabled);
-    icon.classList.toggle('fa-microphone', localStream.getAudioTracks()[0].enabled);
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 function updateVideoIcon() {
     const icon = document.getElementById('videoIcon');
-<<<<<<< HEAD
     const isEnabled = localStream.getVideoTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-video' : 'fas fa-video-slash';
     videoBtn.classList.toggle('active', isEnabled);
@@ -140,24 +98,11 @@ function updateVideoIcon() {
 async function toggleCall() {
     if (isCallActive) {
         endCall();
-=======
-    icon.classList.toggle('fa-video-slash', !localStream.getVideoTracks()[0].enabled);
-    icon.classList.toggle('fa-video', localStream.getVideoTracks()[0].enabled);
-}
-
-// ---------------------
-// โทร
-// ---------------------
-async function startCall() {
-    if (!localStream) {
-        alert('กรุณาเปิดกล้องหรือไมค์ก่อนโทร (สามารถเปิดได้ด้วยปุ่ม Mic/Video)');
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
         return;
     }
 
     const hn = hnInput.value.trim();
     if (!hn) {
-<<<<<<< HEAD
         showMessage('กรุณากรอก HN ของผู้ป่วย', 'warning');
         hnInput.focus();
         return;
@@ -253,41 +198,12 @@ async function startCall(hn) {
         showMessage('ไม่สามารถเริ่มการโทรได้', 'error');
         endCall();
     }
-=======
-        alert('กรุณากรอก HN ของผู้ป่วย');
-        return;
-    }
-
-    peerConnection = new RTCPeerConnection(config);
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-    peerConnection.ontrack = event => {
-        remoteVideo.srcObject = event.streams[0];
-    };
-
-    peerConnection.onicecandidate = event => {
-        if (event.candidate) {
-            const room = 'consultation_room_' + hn;
-            socket.emit('ice_candidate', { candidate: event.candidate, room });
-        }
-    };
-
-    const room = 'consultation_room_' + hn;
-    socket.emit('join', { room, username: 'Doctor' });
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('offer', { sdp: offer.sdp, type: offer.type, room });
-
-    isCallActive = true;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ---------------------
 // จบ Call
 // ---------------------
 function endCall() {
-<<<<<<< HEAD
     console.log('[INFO] Ending call');
     
     if (peerConnection) {
@@ -309,23 +225,12 @@ function endCall() {
     updateCallButton();
     updateStatus('ไม่ได้เชื่อมต่อ', 'disconnected');
     showMessage('สิ้นสุดการโทร', 'info');
-=======
-    if (peerConnection) peerConnection.close();
-    if (localStream) localStream.getTracks().forEach(track => track.stop());
-
-    localVideo.srcObject = null;
-    remoteVideo.srcObject = null;
-    isCallActive = false;
-    const room = 'consultation_room_' + hnInput.value.trim();
-    socket.emit('leave', { room });
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ---------------------
 // Socket Events
 // ---------------------
 socket.on('answer_received', async data => {
-<<<<<<< HEAD
     console.log('[INFO] Answer received');
     try {
         if (peerConnection) {
@@ -336,15 +241,10 @@ socket.on('answer_received', async data => {
         }
     } catch (err) {
         console.error('[ERROR] Set remote description failed:', err);
-=======
-    if (peerConnection) {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription({ sdp: data.sdp, type: data.type }));
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     }
 });
 
 socket.on('ice_candidate_received', data => {
-<<<<<<< HEAD
     console.log('[INFO] ICE candidate received');
     if (peerConnection) {
         peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
@@ -470,21 +370,3 @@ window.addEventListener('beforeunload', (e) => {
         e.returnValue = '';
     }
 });
-=======
-    if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-});
-
-socket.on('user_joined', data => {
-    statusText.textContent = `${data.username} เข้าร่วม`;
-    statusDot.classList.add('connected');
-});
-
-// ---------------------
-// Event Listeners
-// ---------------------
-window.addEventListener('load', initLocalStream);
-micBtn.onclick = toggleMic;
-videoBtn.onclick = toggleVideo;
-callBtn.onclick = startCall;
-endCallBtn.onclick = endCall;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
