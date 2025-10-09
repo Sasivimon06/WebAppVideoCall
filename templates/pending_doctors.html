@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}อนุมัติหมอ{% endblock %}
+
+{% block content %}
+<div class="approve-container">
+  <div class="approve-card">
+    <h2 class="card-title">หมอรอการอนุมัติ</h2>
+
+    {% if doctors %}
+      <div class="doctor-list">
+        {% for doctor in doctors %}
+          <div class="doctor-card">
+            <div class="doctor-info">
+              <h3>{{ doctor[1] }}</h3>
+              <p>{{ doctor[2] }}</p>
+            </div>
+            <form action="{{ url_for('approve_doctor', doctor_id=doctor[0]) }}" method="POST">
+              <button type="submit" class="btn-approve">อนุมัติ</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="no-doctor">
+        ไม่มีหมอรออนุมัติ
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pending_doctors.css') }}">
+{% endblock %}

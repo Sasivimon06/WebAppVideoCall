@@ -1,0 +1,442 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    line-height: 1.6;
+    overflow: hidden;    /* ปิด scroll ทั้งหน้า */
+}
+
+.container {
+    max-width: 400px;
+    width: 100%;
+}
+
+.icon-circle {
+    background: linear-gradient(135deg, #89b4ff, #0062ff);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.icon-circle:hover {
+    transform: translateY(-2px);
+}
+
+.icon-circle i {
+    font-size: 24px;
+}
+
+.icon-circle:first-child i {
+    color: #ffffff;
+}
+
+.icon-circle:last-child i {
+    color: #ef4444;
+}
+
+.logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #89b4ff, #0062ff);
+    border-radius: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    color: white;
+}
+
+/* Login Card */
+.login-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+}
+
+.login-card:hover {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.register-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    width: 90%;       /* กว้าง 90% ของหน้าจอ */
+    max-width: 600px; /* แต่ไม่เกิน 600px */
+    margin: 0 auto;   /* จัดกลางแนวนอน */
+}
+
+.register-card:hover {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.forgot-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    width: 90%;       /* กว้าง 90% ของหน้าจอ */
+    max-width: 460px; /* แต่ไม่เกิน 600px */
+    margin: 0 auto;   /* จัดกลางแนวนอน */
+}
+
+.forgot-card:hover {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.verify-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s ease;
+    width: 90%;       /* กว้าง 90% ของหน้าจอ */
+    max-width: 480px; /* แต่ไม่เกิน 600px */
+    margin: 0 auto;   /* จัดกลางแนวนอน */
+}
+
+.verify-card:hover {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+/* Form Header */
+.form-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.form-header .icon-circle {
+    margin: 0 auto 1rem;
+}
+
+.form-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.2rem;
+}
+
+.form-header p {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* Input Groups */
+.input-group {
+    margin-bottom: 0.5rem;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 1rem;
+    background: #f9fafb;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.input-wrapper input:focus {
+    border-color: #2563eb;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input-wrapper input:hover {
+    background: white;
+    border-color: #d1d5db;
+}
+
+.input-wrapper .input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: #6b7280;
+}
+
+.input-wrapper .toggle-password {
+    position: absolute;
+    right: 12px; /* ระยะห่างจากขอบขวา */
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* Login Button */
+.login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    margin-top: 8px;
+}
+.loading-spinner {
+    position: absolute;
+    display: none;
+    width: 24px;
+    height: 24px;
+}
+
+.login-btn.loading #btnText {
+    visibility: hidden; /* ซ่อนแต่ยังครองพื้นที่ */
+}
+
+.login-btn.loading .loading-spinner {
+    display: block;
+}
+.login-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+/* Form Links */
+.form-links {
+    margin-top: 1.1rem;
+    text-align: center;
+}
+
+.form-links a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.form-links a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 1rem 0;
+}
+
+.form-links p {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .login-card {
+        padding: 1.5rem;
+        border-radius: 15px;
+    }
+    
+    .hospital-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .form-header h2 {
+        font-size: 1.7rem;
+    }
+    
+    .hospital-icons {
+        gap: 8px;
+    }
+    
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .icon-circle i {
+        font-size: 20px;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Flash Messages แถบแจ้งเตือนข้อความ(สำเร็จ, คำเตือน, ผิดพลาด) */
+.flash-messages {
+    margin-top: 24px;
+}
+
+.flash-message {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid;
+    backdrop-filter: blur(4px);
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.flash-message.success {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.2);
+    color: #166534;
+}
+
+.flash-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+}
+
+.flash-message.warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #92400e;
+}
+
+.flash-message.info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+    color: #1e40af;
+}
+
+.flash-message.danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+}
+
+.input-wrapper-role {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 10px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  
+}
+
+/* Focus effect */
+.input-wrapper-role:focus-within {
+  border-color: #4a90e2;
+  box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+  
+}
+
+/* ปรับ input-icon ให้ fix ตำแหน่ง */
+.select-wrapper .input-icon {
+  position: absolute;
+  left: 12px;
+  color: #000000;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+/* Select */
+.select-wrapper select {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 35px 12px 40px; /* <-- เว้นซ้าย 40px กันทับ icon */
+  outline: none;
+  appearance: none; /* ลบลูกศร default */
+  font-family: 'Sarabun', sans-serif;
+  color: #000000;
+}
+
+/* ไอคอนขวา */
+.select-wrapper .select-arrow {
+  position: absolute;
+  right: 12px;
+  color: #000000;
+  pointer-events: none;
+  font-size: 14px;
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>{% block title %}ระบบดูแลสุขภาพ{% endblock %}</title>
+    
+    <!-- CSS หลัก -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <!-- Block สำหรับ CSS เฉพาะหน้า -->
+    {% block styles %}{% endblock %}
+</head>
+<body data-current-user="{{ current_user }}">
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-title">
+                <a href="/">ระบบดูแลสุขภาพ</a>
+                <!-- <a href="/education" class="nav-link">การให้ความรู้</a>
+                <a href="/video-call" class="nav-link">วิดีโอคอล</a> -->
+                
+                <!-- Block สำหรับปุ่ม/ลิงก์เฉพาะหน้า -->
+                {% block navbar_links %}
+                <!-- ถ้าไม่ override จะไม่แสดงปุ่มอื่น ๆ -->
+                {% endblock %}
+            </div>
+            
+            <div class="nav-links">
+                <span class="nav-user">
+                    ผู้ใช้ : {{ session.get('user', 'guest') }}
+                </span>
+                {% if session.get('user') %}
+                <span class="nav-separator">|</span>
+                <a href="{{ url_for('logout') }}" class="logout-link">
+                    <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Block สำหรับ JS เฉพาะหน้า -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

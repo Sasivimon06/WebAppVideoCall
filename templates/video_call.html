@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}วิดีโอคอล - ระบบดูแลสุขภาพ{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/videocall.css') }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-grid">
+        
+        <!-- Left Side - Video Call -->
+        <div class="video-section">
+            <div class="section-header">
+                <h2>Video Consultation</h2>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Not Connected</span>
+                </div>
+            </div>
+
+            <div class="video-grid">
+                <!-- Host Video -->
+                <div class="video-container host-video">
+                    <!-- Local Video (หมอ) -->
+                    <video id="localVideo" autoplay playsinline muted></video>
+                    <div class="video-label">Host</div>
+                    <div class="video-off-indicator" id="hostVideoOff" style="display: none;">
+                        <i class="fas fa-video-slash"></i>
+                        <p>Camera Off</p>
+                    </div>
+                </div>
+
+                <!-- Patient Video -->
+                <div class="video-container patient-video">
+                    <!-- Remote Video (ผู้ป่วย) -->
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="video-label">Patient</div>
+                </div>
+            </div>
+
+            <div class="call-controls">
+                <button class="control-btn" id="micBtn" onclick="toggleMic()">
+                    <i class="fas fa-microphone" id="micIcon"></i>
+                </button>
+
+                <button class="control-btn" id="videoBtn" onclick="toggleVideo()">
+                    <i class="fas fa-video" id="videoIcon"></i>
+                </button>
+            
+                <button class="call-btn start-call-btn" id="callBtn" onclick="toggleCall()">
+                    <i class="fas fa-phone" id="callIcon"></i>
+                </button>
+            
+                <button class="call-btn end-call-btn" id="endCallBtn" onclick="endCall()">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            
+            </div>
+        </div>
+
+        <!-- Right Side - Patient Form -->
+        <div class="form-section">
+            <div class="section-header">
+                <div class="header-icon"><i class="fas fa-file-medical"></i></div>
+                <h2>ข้อมูลผู้ป่วย</h2>
+            </div>
+
+            <form id="patientForm" class="patient-form">
+                <div class="form-group">
+                    <label for="name">ชื่อ-สกุล</label>
+                    <input type="text" id="name" name="name" placeholder="กรอกชื่อ-สกุล" required>
+                </div>
+                <div class="form-group">
+                    <label for="HN">HN</label>
+                    <input type="text" id="HN" name="HN" placeholder="กรอกหมายเลข HN" required>
+                </div>
+
+                <div class="followup-section">
+                    <h3><i class="fas fa-calendar-alt"></i> บันทึกผลการติดตาม</h3>
+                    <div class="form-group">
+                        <label for="followUpDate">วันที่นัดติดตาม</label>
+                        <input type="date" id="followUpDate" name="followUpDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">บันทึกเพิ่มเติม</label>
+                        <textarea id="notes" name="notes" rows="4" placeholder="บันทึกผลการปรึกษา, อาการ, และข้อแนะนำ..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button>
+                    <button type="button" class="btn-secondary" onclick="clearForm()">ล้างข้อมูล</button>
+                </div>
+
+                <div class="status-footer">
+                    <i class="fas fa-clock"></i>
+                    <span id="lastUpdate">อัปเดตล่าสุด: <span id="updateTime"></span></span>
+                </div>
+            </form>
+        </div>
+
+    </div>
+     <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- ต้องมี Socket.IO client -->
+<script src="/socket.io/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/videocall.js') }}"></script>
+{% endblock %}

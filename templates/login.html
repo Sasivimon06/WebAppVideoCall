@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div class="login-card" id="loginForm">
+            <div class="form-header">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='icons/login.svg') }}" alt="login icon" width="32" height="32">
+                </div>
+                <h2>เข้าสู่ระบบ</h2>
+                <p>กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน</p>
+            </div>
+
+            <form id="loginFormElement" class="form" method="POST">
+                <div class="input-group">
+                    <label>ชื่อผู้ใช้</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="username" name="username" placeholder="กรุณาใส่ชื่อผู้ใช้" required>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>รหัสผ่าน</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" placeholder="กรอกรหัสผ่าน" required>
+                        <button type="button" class="toggle-password" name="password" onclick="togglePassword()">
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="login-btn" id="submitBtn">
+                    <span id="btnText">เข้าสู่ระบบ</span>
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="spinner"></div>
+                    </div>
+                </button>
+            </form>
+
+            <!-- Flash Messages -->
+            <div id="flashMessages" class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            <div class="form-links">
+                <!-- ลืมรหัสผ่าน -->
+                <a href="/forgot_password" class="forgot-link">ลืมรหัสผ่าน?</a>
+            
+                <div class="divider"></div>
+            
+                <!-- สมัครสมาชิก -->
+                <p>
+                    ยังไม่มีบัญชีผู้ใช้?
+                    <a href="/register_login" class="register-link">
+                        ลงทะเบียน
+                    </a>
+                </p>
+            </div>
+        </div>
+        
+        </div>
+        </div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

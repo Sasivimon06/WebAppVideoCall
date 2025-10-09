@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}วิดีโอคอล - ระบบดูแลสุขภาพ{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/videocall_patient.css') }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Patient Info Banner -->
+    <div class="patient-info-banner">
+        <div class="patient-details">
+            <i class="fas fa-user-circle"></i>
+            <div>
+                <h3>{{ patient.name }}</h3>
+                <p id="currentHN">HN: {{ patient.HN }}</p>
+            </div>
+        </div>
+        <div class="status-badge">
+            <i class="fas fa-circle pulse"></i>
+            <span>พร้อมรับสาย</span>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Video Call Section -->
+        <div class="video-section">
+            <div class="section-header">
+                <h2>Video Consultation</h2>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">ยังไม่ได้รับสาย</span>
+                </div>
+            </div>
+
+            <div class="video-grid">
+                <!-- Host / Doctor Video -->
+                <div class="video-container host-video">
+                    <video id="hostVideo" autoplay playsinline></video>
+                    <div class="video-label">แพทย์</div>
+                    <div class="video-placeholder" id="doctorPlaceholder">
+                        <i class="fas fa-user-md"></i>
+                        <p>รอแพทย์เข้าร่วม</p>
+                    </div>
+                </div>
+
+                <!-- Patient Video -->
+                <div class="video-container patient-video">
+                    <video id="patientVideo" autoplay muted playsinline></video>
+                    <div class="video-label">คุณ</div>
+                    <div class="video-placeholder" id="patientPlaceholder">
+                        <i class="fas fa-video-slash"></i>
+                        <p>กล้องปิดอยู่</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="call-controls">
+                <!-- Toggle Mic -->
+                <button class="control-btn" id="micBtn" onclick="toggleMic()" disabled title="เปิด/ปิดไมค์">
+                    <i class="fas fa-microphone-slash" id="micIcon"></i>
+                </button>
+
+                <!-- Toggle Video -->
+                <button class="control-btn" id="videoBtn" onclick="toggleVideo()" disabled title="เปิด/ปิดกล้อง">
+                    <i class="fas fa-video-slash" id="videoIcon"></i>
+                </button>
+
+                <!-- Answer Call Button -->
+                <button class="call-btn start-call-btn" id="answerBtn" onclick="answerCall()">
+                    <i class="fas fa-phone"></i> 
+                    <span>รับสาย</span>
+                </button>
+
+                <!-- End Call -->
+                <button class="call-btn end-call-btn" id="endCallBtn" onclick="endCall()" style="display: none;">
+                    <i class="fas fa-phone-slash"></i>
+                    <span>วางสาย</span>
+                </button>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <div class="instruction-item">
+                    <i class="fas fa-info-circle"></i>
+                    <p>รอแพทย์โทรเข้ามา จากนั้นกดปุ่ม "รับสาย" เพื่อเริ่มการปรึกษา</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container"></div>
+</div>
+
+<!-- ส่งข้อมูลผู้ป่วยไปยัง JavaScript -->
+<script>
+    window.patientData = {
+        HN: "{{ patient.HN }}",
+        name: "{{ patient.name }}",
+        birthDate: "{{ patient.get('birthDate', '') }}",
+        gender: "{{ patient.get('gender', '') }}"
+    };
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/videocall_patient.js') }}"></script>
+{% endblock %}

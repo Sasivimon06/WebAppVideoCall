@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="th">
+<head></head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ลงทะเบียนผู้ใช้ใหม่</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="verify-card">
+      <div class="form-header">
+        <h2>กรอก OTP เพื่อยืนยันตัวตน</h2>
+      </div>
+
+      <form id="registerverify" class="form" method="POST" action="{{ url_for('register_verify_otp') }}">
+        <div class="input-group">
+          <label for="otp">กรอกรหัส OTP ที่ได้รับทางอีเมล</label>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
+            <input type="text" id="otp" name="otp" placeholder="กรอกรหัส OTP ที่ได้รับ" required autofocus inputmode="numeric" pattern="\d*">
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" id="submitBtn">
+          <span id="btnText">ยืนยัน</span>
+          <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+          </div>
+        </button>
+        <p class="otp-expire-timer" style="text-align: center; margin-top: 20px; color: var(--text-secondary, #888);">
+          รหัส OTP จะหมดอายุใน <span id="countdown">{{ OTP_EXPIRE_MINUTES }}</span> นาที
+        </p>
+      </form>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="form-links">
+        <div style="margin-bottom: 10px;">
+          ยังไม่ได้รับรหัส?
+          <a href="#" id="resendregisterOtp" class="resend-otp-link">
+            <i class="fas fa-sync-alt refresh-icon"></i>
+            ส่งรหัส OTP ใหม่
+          </a>
+        </div>
+        <div>
+          <a href="/register_login">กลับไปหน้าลงทะเบียน</a>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    window.otpExpireTimestampRegister = `{{ otp_expire_timestamp | tojson }}`;
+    window.registerUrl = "{{ url_for('register_login') }}";
+  </script>
+  <script src="{{ url_for('static', filename='js/resend_register_otp.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>
