@@ -948,7 +948,6 @@ def get_patient(HN):
 @app.route('/videocall_patient')
 @login_required()
 def videocall_patient():
-<<<<<<< HEAD
     username = session.get('user')
     
     # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
@@ -979,15 +978,6 @@ def videocall_patient():
                 # ถ้ายังไม่มีข้อมูลเลย ให้ redirect ไปหน้า register
                 flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเริ่มวิดีโอคอล", "warning")
                 return redirect(url_for('register_patient'))
-=======
-    # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
-    last_patient = session.get('last_patient')  # {'HN': ..., 'name': ..., ...}
-
-    if not last_patient:
-        # ถ้าไม่มีข้อมูลผู้ป่วย ให้ redirect ไปหน้า register หรือแจ้ง error
-        flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเริ่มวิดีโอคอล", "error")
-        return redirect(url_for('home'))
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
     return render_template('videocall_patient.html', patient=last_patient)
 
@@ -1037,7 +1027,6 @@ def get_followups():
     
 @socketio.on('join')
 def on_join(data):
-<<<<<<< HEAD
     room = data['room']
     username = data['username']
     join_room(room)
@@ -1052,46 +1041,27 @@ def on_offer(data):
         'sdp': data['sdp'],
         'type': data['type']
     }, room=room, include_self=False)
-=======
-    room = data['room']  # e.g., 'consultation_room_123' จาก HN หรือ session ID
-    join_room(room)
-    emit('user_joined', {'username': data['username']}, room=room)
-
-@socketio.on('offer')  # เมื่อ caller ส่ง offer SDP
-def on_offer(data):
-    room = data['room']
-    emit('offer_received', data, room=room)  # ส่ง offer ไปยัง callee
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 @socketio.on('answer')
 def on_answer(data):
     room = data['room']
-<<<<<<< HEAD
     print(f"[ANSWER] Received answer for room: {room}")
     emit('answer_received', {
         'sdp': data['sdp'],
         'type': data['type']
     }, room=room, include_self=False)
-=======
-    emit('answer_received', data, room=room)
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 @socketio.on('ice_candidate')
 def on_ice_candidate(data):
     room = data['room']
-<<<<<<< HEAD
     print(f"[ICE] Received ICE candidate for room: {room}")
     emit('ice_candidate_received', {
         'candidate': data['candidate']
     }, room=room, include_self=False)
-=======
-    emit('ice_candidate_received', data, room=room)
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 @socketio.on('leave')
 def on_leave(data):
     room = data['room']
-<<<<<<< HEAD
     username = data.get('username', 'User')
     leave_room(room)
     print(f"[LEAVE] {username} left room: {room}")
@@ -1105,61 +1075,27 @@ def on_disconnect():
 @app.route('/api/check_patient/<hn>', methods=['GET'])
 @login_required()
 def check_patient(hn):
-    role = session.get('role')
     username = session.get('user')
-    
     with sqlite3.connect("patient.db") as conn:
         cursor = conn.cursor()
-        
-        # ถ้าเป็น doctor → เห็นผู้ป่วยทุกคน
-        # ถ้าเป็น patient → เห็นแค่ตัวเอง
-        if role == 'doctor' or role == 'admin':
-            cursor.execute("SELECT HN, name, username FROM patient WHERE HN=?", (hn,))
-        else:
-            cursor.execute("SELECT HN, name, username FROM patient WHERE HN=? AND username=?", (hn, username))
-        
+        cursor.execute("SELECT HN, name FROM patient WHERE HN=? AND username=?", (hn, username))
         row = cursor.fetchone()
-        
         if row:
-            return jsonify({
-                "success": True, 
-                "HN": row[0], 
-                "name": row[1],
-                "patient_username": row[2]  # เก็บ username ของผู้ป่วย
-            })
-        return jsonify({"success": False, "error": "ไม่พบผู้ป่วย HN: " + hn}), 404
+            return jsonify({"success": True, "HN": row[0], "name": row[1]})
+        return jsonify({"success": False, "error": "ไม่พบผู้ป่วย"}), 404
 
 if __name__ == '__main__':
     # เตรียมการข้อมูลสำหรับผู้ใช้งานและอุปกรณ์
-=======
-    emit('user_left', {'username': 'User'}, room=room)
-
-@socketio.on('disconnect')
-def on_disconnect():
-    # จัดการ disconnection
-    pass
-
-if __name__ == '__main__':
-    # เตรียมฐานข้อมูลสำหรับผู้ใช้งานและอุปกรณ์
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     init_users_db()
     init_patient_db()
     init_learn_db()
     init_followup_db()
 
-<<<<<<< HEAD
     # ใช้ socketio.run() แทน app.run()
     socketio.run(
         app,
         debug=True,
         host='0.0.0.0',
         port=5000,
-        allow_unsafe_werkzeug=True
-=======
-    # เริ่มต้นเซิร์ฟเวอร์ Flask
-    app.run(
-        debug=True,
-        host='0.0.0.0',
-        port=5000
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
+        allow_unsafe_werkzeug=True  # สำหรับ development เท่านั้น
     )
