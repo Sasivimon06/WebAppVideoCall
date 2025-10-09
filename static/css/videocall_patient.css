@@ -323,6 +323,7 @@ html, body {
 
 .close:hover {
     color: #c0392b;
+<<<<<<< HEAD
 }
 /* เพิ่มโค้ดนี้ต่อท้ายไฟล์ CSS เดิม */
 
@@ -615,4 +616,6 @@ button:disabled {
 
 button:not(:disabled):active {
     transform: scale(0.98);
+=======
+>>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
