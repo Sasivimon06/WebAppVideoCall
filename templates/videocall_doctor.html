@@ -17,11 +17,7 @@
                 <h2>Video Consultation</h2>
                 <div class="connection-status">
                     <div class="status-dot" id="statusDot"></div>
-<<<<<<< HEAD
                     <span id="statusText">ไม่ได้เชื่อมต่อ</span>
-=======
-                    <span id="statusText">Not Connected</span>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                 </div>
             </div>
 
@@ -29,17 +25,10 @@
                 <!-- Host Video -->
                 <div class="video-container host-video">
                     <video id="hostVideo" autoplay muted playsinline></video>
-<<<<<<< HEAD
                     <div class="video-label">คุณ (แพทย์)</div>
                     <div class="video-placeholder" id="hostPlaceholder">
                         <i class="fas fa-user-md"></i>
                         <p>กล้องปิดอยู่</p>
-=======
-                    <div class="video-label">คุณ</div>
-                    <div class="video-off-indicator" id="hostVideoOff" style="display: none;">
-                        <i class="fas fa-video-slash"></i>
-                        <p>Camera Off</p>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                     </div>
                 </div>
 
@@ -47,19 +36,14 @@
                 <div class="video-container patient-video">
                     <video id="patientVideo" autoplay playsinline></video>
                     <div class="video-label">ผู้ป่วย</div>
-<<<<<<< HEAD
                     <div class="video-placeholder" id="patientPlaceholder">
                         <i class="fas fa-user"></i>
                         <p>รอผู้ป่วยรับสาย</p>
                     </div>
-=======
-                    <div class="user-name" id="patientName"></div>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                 </div>
             </div>
 
             <div class="call-controls">
-<<<<<<< HEAD
                 <button class="control-btn" id="micBtn" onclick="toggleMic()" title="เปิด/ปิดไมค์">
                     <i class="fas fa-microphone-slash" id="micIcon"></i>
                 </button>
@@ -83,24 +67,6 @@
                     <i class="fas fa-info-circle"></i>
                     <p>กรอก HN ของผู้ป่วยด้านขวา จากนั้นกดปุ่มโทร (สีเขียว) เพื่อเริ่มการปรึกษา</p>
                 </div>
-=======
-                <button class="control-btn" id="micBtn" onclick="toggleMic()">
-                    <i class="fas fa-microphone-slash" id="micIcon"></i>
-                </button>
-
-                <button class="control-btn" id="videoBtn" onclick="toggleVideo()">
-                    <i class="fas fa-video-slash" id="videoIcon"></i>
-                </button>
-            
-                <button class="call-btn start-call-btn" id="callBtn" onclick="toggleCall()">
-                    <i class="fas fa-phone" id="callIcon"></i>
-                </button>
-            
-                <button class="call-btn end-call-btn" id="endCallBtn" onclick="endCall()">
-                    <i class="fas fa-phone-slash"></i>
-                </button>
-            
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
             </div>
         </div>
 
@@ -113,7 +79,6 @@
 
             <form id="patientForm" class="patient-form">
                 <div class="form-group">
-<<<<<<< HEAD
                     <label for="HN">HN <span style="color: red;">*</span></label>
                     <input type="text" id="HN" name="HN" placeholder="กรอกหมายเลข HN" required>
                 </div>
@@ -121,14 +86,6 @@
                 <div class="form-group">
                     <label for="name">ชื่อ-สกุล</label>
                     <input type="text" id="name" name="name" placeholder="กรอกชื่อ-สกุล (จะถูกดึงอัตโนมัติ)" required>
-=======
-                        <label for="name">ชื่อ-สกุล</label>
-                        <input type="text" id="name" name="name" placeholder="กรอกชื่อ-สกุล" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="HN">HN</label>
-                        <input type="text" id="HN" name="HN" placeholder="กรอกหมายเลข HN" required>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                 </div>
 
                 <div class="followup-section">
@@ -145,49 +102,30 @@
                 </div>
 
                 <div class="form-actions">
-<<<<<<< HEAD
                     <button type="submit" class="btn-primary">
                         <i class="fas fa-save"></i> บันทึกข้อมูล
                     </button>
                     <button type="button" class="btn-secondary" onclick="clearForm()">
                         <i class="fas fa-eraser"></i> ล้างข้อมูล
                     </button>
-=======
-                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button>
-                    <button type="button" class="btn-secondary" onclick="clearForm()">ล้างข้อมูล</button>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                 </div>
 
                 <div class="status-footer">
                     <i class="fas fa-clock"></i>
-<<<<<<< HEAD
                     <span id="lastUpdate">อัปเดตล่าสุด: <span id="updateTime">-</span></span>
-=======
-                    <span id="lastUpdate">อัปเดตล่าสุด: <span id="updateTime"></span></span>
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
                 </div>
             </form>
         </div>
 
     </div>
-<<<<<<< HEAD
     
     <!-- Success/Error Messages -->
-=======
-     <!-- Success/Error Messages -->
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     <div id="messageContainer" class="message-container"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<<<<<<< HEAD
 <!-- Socket.IO CDN - สำคัญมาก! -->
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='js/videocall_doctor.js') }}"></script>
 {% endblock %}
-=======
-<script src="{{ url_for('static', filename='js/videocall_doctor.js') }}"></script>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>  <!-- ถ้าใช้ PeerJS -->
-{% endblock %}
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
