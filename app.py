@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
+from flask import Flask, render_template, request, redirect, send_from_directory, url_for, jsonify, session, flash
 import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
@@ -34,6 +34,10 @@ app.config.update(
 
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.secret_key)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(app.static_folder, 'favicon.ico')
 
 # Database 
 def init_users_db():
@@ -936,7 +940,7 @@ def videocall_doctor():
 
 @app.route('/get_patient/<hn>', methods=['GET'])
 @login_required()
-def get_patient(HN):
+def get_patient(hn):
     with sqlite3.connect("patient.db") as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT HN, name FROM patient WHERE HN=?", (hn,))
@@ -1075,14 +1079,30 @@ def on_disconnect():
 @app.route('/api/check_patient/<hn>', methods=['GET'])
 @login_required()
 def check_patient(hn):
+    print(f"[DEBUG] Checking patient with HN: {hn}")
     username = session.get('user')
-    with sqlite3.connect("patient.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT HN, name FROM patient WHERE HN=? AND username=?", (hn, username))
-        row = cursor.fetchone()
-        if row:
-            return jsonify({"success": True, "HN": row[0], "name": row[1]})
-        return jsonify({"success": False, "error": "ไม่พบผู้ป่วย"}), 404
+    print(f"[DEBUG] Current user: {username}")
+    try:
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT HN, name, birth_date, gender, phone, disease FROM patient WHERE HN=?", (hn,))
+            row = cursor.fetchone()
+            print(f"[DEBUG] Database result: {row}")
+            if row:
+                return jsonify({
+                    "success": True,
+                    "HN": row[0],
+                    "name": row[1],
+                    "birthDate": row[2],
+                    "gender": row[3],
+                    "phone": row[4],
+                    "disease": row[5]
+                })
+            else:
+                return jsonify({"success": False, "error": "ไม่พบผู้ป่วย"}), 404
+    except Exception as e:
+        print(f"[ERROR] Database error: {str(e)}")
+        return jsonify({"success": False, "error": "เกิดข้อผิดพลาดในการค้นหาข้อมูล"}), 500
 
 if __name__ == '__main__':
     # เตรียมการข้อมูลสำหรับผู้ใช้งานและอุปกรณ์

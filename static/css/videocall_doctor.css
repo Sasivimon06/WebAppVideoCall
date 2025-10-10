@@ -76,10 +76,19 @@ html, body {
     background: #000;
     border-radius: 10px;
     overflow: hidden;
-    height: 220px;
+    height: 220px; /* กลับไปใช้ความสูงเดิม */
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* เปลี่ยนเป็น contain เพื่อให้วิดีโอแสดงเต็มกรอบโดยไม่ถูกครอบตัด */
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .video-content {
@@ -96,6 +105,12 @@ html, body {
 
 .user-name {
     font-weight: bold;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .user-subtitle {
@@ -353,7 +368,6 @@ textarea {
         max-height: none;
     }
 }
-<<<<<<< HEAD
 /* เพิ่มโค้ดนี้ต่อท้ายไฟล์ CSS เดิม */
 
 /* ========== Video Placeholder ========== */
@@ -429,15 +443,21 @@ video[srcObject] ~ .video-placeholder {
 
 /* ========== Call Button States ========== */
 .call-btn.active {
-    background: #ffc107 !important;
+    background: #dc3545 !important; /* เปลี่ยนเป็นสีแดงเมื่อกำลังใช้สาย */
+    color: white;
 }
 
 .call-btn.active:hover {
-    background: #e0a800 !important;
+    background: #c82333 !important; /* สีแดงเข้มเมื่อ hover */
 }
 
 #endCallBtn {
     animation: fadeIn 0.3s;
+    background: #dc3545 !important; /* สีแดงสำหรับปุ่มวางสาย */
+}
+
+#endCallBtn:hover {
+    background: #c82333 !important; /* สีแดงเข้มเมื่อ hover */
 }
 
 @keyframes fadeIn {
@@ -646,5 +666,3 @@ button:disabled {
 button:not(:disabled):active {
     transform: scale(0.98);
 }
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6

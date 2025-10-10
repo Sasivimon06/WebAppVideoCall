@@ -30,12 +30,13 @@ html, body {
 .video-section {
     flex: 1;
     min-width: 300px;
-    max-height: 90vh;
-    overflow-y: auto;
+    height: 90vh; /* เปลี่ยนจาก max-height เป็น height */
     background: #fff;
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
 }
 
 /* Section Header */
@@ -76,10 +77,22 @@ html, body {
     background: #000;
     border-radius: 10px;
     overflow: hidden;
-    height: 220px;
+    width: 100%;
+    /* ใช้ aspect-ratio แทน min-height */
+    aspect-ratio: 16/9; /* หรือ 4/3 ตามสัดส่วนวิดีโอ */
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* crop ให้เต็ม container */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
 }
 
 .video-content {
@@ -181,6 +194,11 @@ html, body {
 
 .start-call-btn:hover {
     background: #45a049 !important;
+}
+
+/* ซ่อนข้อความในปุ่มรับสาย */
+#answerBtn span {
+    display: none;
 }
 
 /* End Call - สีแดง */
@@ -323,7 +341,6 @@ html, body {
 
 .close:hover {
     color: #c0392b;
-<<<<<<< HEAD
 }
 /* เพิ่มโค้ดนี้ต่อท้ายไฟล์ CSS เดิม */
 
@@ -400,15 +417,28 @@ video[srcObject] ~ .video-placeholder {
 
 /* ========== Call Button States ========== */
 .call-btn.active {
-    background: #ffc107 !important;
+    background: #dc3545 !important; /* สีแดง */
+    color: white;
 }
 
 .call-btn.active:hover {
-    background: #e0a800 !important;
+    background: #c82333 !important; /* สีแดงเข้มเมื่อ hover */
 }
 
 #endCallBtn {
     animation: fadeIn 0.3s;
+    background: #dc3545 !important; /* สีแดง */
+    border: none;
+    color: white;
+}
+
+#endCallBtn:hover {
+    background: #c82333 !important; /* สีแดงเข้มเมื่อ hover */
+}
+
+/* ซ่อนข้อความ "วางสาย" */
+#endCallBtn span {
+    display: none;
 }
 
 @keyframes fadeIn {
@@ -616,6 +646,4 @@ button:disabled {
 
 button:not(:disabled):active {
     transform: scale(0.98);
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }

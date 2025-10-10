@@ -5,24 +5,16 @@ const socket = io();
 let localStream;
 let peerConnection;
 let isCallActive = false;
-<<<<<<< HEAD
 let currentRoom = null;
 
 // Video elements
 const localVideo = document.getElementById('patientVideo');
 const remoteVideo = document.getElementById('hostVideo');
-=======
-
-// Video elements
-const localVideo = document.getElementById('patientVideo');
-const remoteVideo = document.getElementById('hostVideo'); // หมอเป็น Host
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 // Status elements
 const statusText = document.getElementById('statusText');
 const statusDot = document.getElementById('statusDot');
 
-<<<<<<< HEAD
 // Control buttons
 const answerBtn = document.getElementById('answerBtn');
 const endCallBtn = document.getElementById('endCallBtn');
@@ -34,27 +26,18 @@ const patientData = window.patientData || {};
 const currentHN = patientData.HN;
 
 console.log('[INFO] Patient HN:', currentHN);
-=======
-// ดึง HN จาก HTML (session/last_patient)
-const currentHN = document.getElementById('currentHN').textContent.split(': ')[1];
-console.log("Current patient HN:", currentHN);
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 
 // ------------------ ICE Servers ------------------
 const config = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-<<<<<<< HEAD
         { urls: 'stun:stun1.l.google.com:19302' },
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
         { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' }
     ]
 };
 
 // ------------------ Start Local Video ------------------
 async function startLocalVideo() {
-<<<<<<< HEAD
     if (localStream) return;
     
     try {
@@ -93,7 +76,14 @@ function setupPeerConnection() {
     peerConnection.ontrack = event => {
         console.log('[INFO] Remote track received');
         remoteVideo.srcObject = event.streams[0];
-        updateStatus('เชื่อมต่อสำเร็จ', 'connected');
+
+        // เช็คว่า video track พร้อมใช้งาน
+        const videoTrack = event.streams[0].getVideoTracks()[0];
+        if (videoTrack) {
+            console.log('[INFO] Remote video track ready');
+            updateStatus('เชื่อมต่อสำเร็จ ✓', 'connected');
+            showMessage('เชื่อมต่อกับแพทย์สำเร็จ', 'success');
+        }
     };
 
     // จัดการ ICE candidates
@@ -119,67 +109,70 @@ function setupPeerConnection() {
 
 // ------------------ Answer Call ------------------
 async function answerCall() {
-    if (isCallActive) return;
+    if (isCallActive || !pendingOffer) return;
 
     console.log('[INFO] Answering call');
     
-    await startLocalVideo();
-    setupPeerConnection();
-
-    currentRoom = getRoomName();
-    socket.emit('join', { room: currentRoom, username: 'Patient' });
-
-    isCallActive = true;
-    answerBtn.disabled = true;
-    answerBtn.style.display = 'none';
-    endCallBtn.style.display = 'inline-flex';
-    
-    updateStatus('รอการเชื่อมต่อ...', 'connecting');
-    showMessage('กำลังเชื่อมต่อกับแพทย์...', 'info');
-=======
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideo.srcObject = localStream;
+        // 1. เริ่มต้น local video stream
+        await startLocalVideo();
+        
+        // 2. สร้าง peer connection
+        setupPeerConnection();
+        
+        // 3. ตั้งค่า remote description จาก offer ที่ได้รับ
+        await peerConnection.setRemoteDescription(
+            new RTCSessionDescription({ 
+                sdp: pendingOffer.sdp, 
+                type: pendingOffer.type 
+            })
+        );
+        
+        // 4. สร้างและส่ง answer
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        console.log('[INFO] Sending answer');
+        socket.emit('answer', { 
+            sdp: answer.sdp, 
+            type: answer.type, 
+            room: getRoomName() 
+        });
 
-        // เริ่มปิดไมค์และวิดีโอ
-        localStream.getAudioTracks()[0].enabled = false;
-        localStream.getVideoTracks()[0].enabled = false;
+        // 5. อัพเดทสถานะและ UI
+        currentRoom = getRoomName();
+        socket.emit('join', { room: currentRoom, username: 'Patient' });
 
-        peerConnection = new RTCPeerConnection(config);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-        peerConnection.ontrack = event => {
-            remoteVideo.srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) {
-                socket.emit('ice_candidate', { candidate: event.candidate, room: getRoomName() });
+        isCallActive = true;
+        answerBtn.disabled = true;
+        answerBtn.style.display = 'none';
+        endCallBtn.style.display = 'inline-flex';
+        
+        // ล้าง pending offer
+        pendingOffer = null;
+        
+        updateStatus('กำลังเชื่อมต่อ...', 'connecting');
+        showMessage('กำลังเชื่อมต่อกับแพทย์...', 'info');
+        
+        // ตั้งค่า timeout เพื่อตรวจสอบการเชื่อมต่อ
+        setTimeout(() => {
+            if (peerConnection && peerConnection.iceConnectionState === 'connected') {
+                updateStatus('เชื่อมต่อสำเร็จ', 'connected');
             }
-        };
-
+        }, 1000);
+        
+        // หยุดเสียงเรียกเข้า
+        stopRingtone();
+        
     } catch (err) {
-        console.error('Error accessing media devices:', err);
-        alert('ไม่สามารถเข้าถึงกล้องหรือไมโครโฟนได้');
+        console.error('[ERROR] Answer call failed:', err);
+        showMessage('ไม่สามารถรับสายได้', 'error');
+        endCall();
     }
-}
-
-// ------------------ Answer Call ------------------
-async function answerCall() {
-    if (isCallActive) return;
-    await startLocalVideo();
-
-    const room = getRoomName();
-    socket.emit('join', { room: room, username: 'Patient' });
-
-    isCallActive = true;
-    document.getElementById('answerBtn').disabled = true;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ------------------ Toggle Mic ------------------
 function toggleMic() {
-<<<<<<< HEAD
     if (!localStream) {
         showMessage('กรุณารับสายก่อน', 'warning');
         return;
@@ -194,17 +187,10 @@ function updateMicIcon() {
     const isEnabled = localStream.getAudioTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
     micBtn.classList.toggle('active', isEnabled);
-=======
-    if (!localStream) return;
-    const track = localStream.getAudioTracks()[0];
-    track.enabled = !track.enabled;
-    document.getElementById('micIcon').classList.toggle('fa-microphone-slash');
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ------------------ Toggle Video ------------------
 function toggleVideo() {
-<<<<<<< HEAD
     if (!localStream) {
         showMessage('กรุณารับสายก่อน', 'warning');
         return;
@@ -219,17 +205,10 @@ function updateVideoIcon() {
     const isEnabled = localStream.getVideoTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-video' : 'fas fa-video-slash';
     videoBtn.classList.toggle('active', isEnabled);
-=======
-    if (!localStream) return;
-    const track = localStream.getVideoTracks()[0];
-    track.enabled = !track.enabled;
-    document.getElementById('videoIcon').classList.toggle('fa-video-slash');
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ------------------ End Call ------------------
 function endCall() {
-<<<<<<< HEAD
     console.log('[INFO] Ending call');
 
     if (peerConnection) {
@@ -261,31 +240,23 @@ function endCall() {
     
     updateStatus('ยังไม่ได้รับสาย', 'disconnected');
     showMessage('สิ้นสุดการโทร', 'info');
-=======
-    const room = getRoomName();
-    if (peerConnection) peerConnection.close();
-    if (localStream) localStream.getTracks().forEach(track => track.stop());
-    localVideo.srcObject = null;
-    remoteVideo.srcObject = null;
-    isCallActive = false;
-    socket.emit('leave', { room: room });
-    document.getElementById('answerBtn').disabled = false;
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
 }
 
 // ------------------ Helper: Room Name ------------------
 function getRoomName() {
-<<<<<<< HEAD
     // ใช้ HN เป็น room name (ต้องตรงกับฝั่งหมอ)
-=======
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6
     return 'consultation_room_' + currentHN;
 }
 
 // ------------------ Socket Events ------------------
+// เก็บ offer ไว้ใช้ตอนรับสาย
+let pendingOffer = null;
+
 socket.on('offer_received', async data => {
-<<<<<<< HEAD
     console.log('[INFO] Offer received');
+    
+    // เก็บ offer ไว้
+    pendingOffer = data;
     
     if (!isCallActive) {
         // แสดงปุ่มรับสาย
@@ -295,29 +266,6 @@ socket.on('offer_received', async data => {
         
         // เล่นเสียงเรียกเข้า (optional)
         playRingtone();
-    }
-    
-    try {
-        if (peerConnection) {
-            await peerConnection.setRemoteDescription(
-                new RTCSessionDescription({ sdp: data.sdp, type: data.type })
-            );
-            
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            
-            console.log('[INFO] Sending answer');
-            socket.emit('answer', { 
-                sdp: answer.sdp, 
-                type: answer.type, 
-                room: getRoomName() 
-            });
-            
-            updateStatus('กำลังเชื่อมต่อ...', 'connecting');
-        }
-    } catch (err) {
-        console.error('[ERROR] Handle offer failed:', err);
-        showMessage('เกิดข้อผิดพลาดในการรับสาย', 'error');
     }
 });
 
@@ -410,19 +358,3 @@ window.addEventListener('beforeunload', (e) => {
         e.returnValue = '';
     }
 });
-=======
-    await peerConnection.setRemoteDescription(new RTCSessionDescription({ sdp: data.sdp, type: data.type }));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit('answer', { sdp: answer.sdp, type: answer.type, room: getRoomName() });
-});
-
-socket.on('ice_candidate_received', data => {
-    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-});
-
-socket.on('user_joined', data => {
-    statusText.textContent = `${data.username} เข้าร่วม`;
-    statusDot.classList.add('connected');
-});
->>>>>>> a5d1bc9f89d7de9335090e1327c095d68c2013a6

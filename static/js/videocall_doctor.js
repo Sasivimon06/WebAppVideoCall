@@ -152,7 +152,14 @@ async function startCall(hn) {
         peerConnection.ontrack = event => {
             console.log('[INFO] Remote track received');
             remoteVideo.srcObject = event.streams[0];
-            updateStatus('เชื่อมต่อสำเร็จ', 'connected');
+
+            // เช็คว่า video track พร้อมใช้งาน
+            const videoTrack = event.streams[0].getVideoTracks()[0];
+            if (videoTrack) {
+                console.log('[INFO] Remote video track ready');
+                updateStatus('เชื่อมต่อสำเร็จ', 'connected');
+                showMessage('เชื่อมต่อกับผู้ป่วยสำเร็จ', 'success');
+            }
         };
 
         // จัดการ ICE candidates
@@ -238,9 +245,18 @@ socket.on('answer_received', async data => {
                 new RTCSessionDescription({ sdp: data.sdp, type: data.type })
             );
             updateStatus('กำลังเชื่อมต่อ...', 'connecting');
+
+            // ตรวจสอบสถานะการเชื่อมต่อ
+            setTimeout(() => {
+                if (peerConnection && peerConnection.iceConnectionState === 'connected') {
+                    updateStatus('เชื่อมต่อสำเร็จ', 'connected');
+                    showMessage('เชื่อมต่อกับผู้ป่วยสำเร็จ', 'success');
+                }
+            }, 1000);
         }
     } catch (err) {
         console.error('[ERROR] Set remote description failed:', err);
+        showMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
     }
 });
 
@@ -335,8 +351,24 @@ patientForm.addEventListener('submit', async (e) => {
         const result = await response.json();
         
         if (result.success) {
+            // บันทึกชื่อและ HN ไว้
+            const savedName = formData.name;
+            const savedHN = formData.HN;
+            
+            // ล้างข้อมูลในฟอร์ม
+            document.getElementById('notes').value = '';
+            document.getElementById('followUpDate').value = '';
+            
+            // ใส่ชื่อและ HN กลับคืน
+            nameInput.value = savedName;
+            hnInput.value = savedHN;
+            
+            // แสดงข้อความสำเร็จและเวลาอัพเดท
             showMessage('บันทึกข้อมูลสำเร็จ', 'success');
             document.getElementById('updateTime').textContent = result.updated_at;
+            
+            // โฟกัสที่ช่องบันทึก notes เพื่อความสะดวกในการกรอกข้อมูลใหม่
+            document.getElementById('notes').focus();
         } else {
             showMessage('เกิดข้อผิดพลาด: ' + result.error, 'error');
         }

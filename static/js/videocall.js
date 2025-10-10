@@ -1,33 +1,27 @@
-// -----------------------------
-// Client-side Video Call Script
-// -----------------------------
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 
-const room = prompt("Enter room name to join:") || "testRoom";  // ให้ผู้ใช้กรอกห้อง
-const username = "user_" + Math.floor(Math.random() * 1000);
+// ดึง HN จาก element ที่มี id="currentHN"
+const hnElement = document.getElementById("currentHN");
+const room = hnElement ? hnElement.textContent.replace("HN: ", "").trim() : "testRoom";
+console.log("Joining room:", room);
+
+const username = document.querySelector(".patient-details h3") ? 
+                document.querySelector(".patient-details h3").textContent : 
+                "user_" + Math.floor(Math.random() * 1000);
 
 let localStream;
 let peerConnection;
-const config = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" } // ใช้ Google STUN
-    ]
-};
+const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-// เชื่อมต่อไปยัง Socket.IO server
 const socket = io();
 
 // -----------------------------
 // เตรียมกล้อง/ไมค์
 // -----------------------------
 async function initLocalStream() {
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideo.srcObject = localStream;
-    } catch (err) {
-        console.error("ไม่สามารถเข้าถึงกล้อง/ไมค์:", err);
-    }
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
 }
 
 // -----------------------------
@@ -36,7 +30,7 @@ async function initLocalStream() {
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(config);
 
-    // ส่ง local tracks เข้า peer connection
+    // ส่ง local tracks
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
     // แสดง remote stream
@@ -44,14 +38,10 @@ function createPeerConnection() {
         remoteVideo.srcObject = event.streams[0];
     };
 
-    // ส่ง ICE candidate ไป server
+    // ส่ง ICE candidate
     peerConnection.onicecandidate = event => {
         if (event.candidate) {
-            socket.emit("candidate", {
-                room,
-                candidate: event.candidate,
-                user: username
-            });
+            socket.emit("candidate", { room, candidate: event.candidate });
         }
     };
 }
@@ -60,44 +50,50 @@ function createPeerConnection() {
 // Socket.IO Events
 // -----------------------------
 socket.on("connect", () => {
-    console.log("เชื่อมต่อกับ signaling server แล้ว");
+    console.log("เชื่อมต่อ signaling server");
     socket.emit("join", { room, user: username });
 });
 
+// ใครเข้าห้องแล้ว notify
 socket.on("user-joined", data => {
-    console.log("มีผู้ใช้ใหม่เข้าห้อง:", data);
+    console.log("มีผู้ใช้เข้าห้อง:", data);
 
-    // เราเป็นฝ่าย Caller → สร้าง offer
-    createPeerConnection();
-    peerConnection.createOffer()
-        .then(offer => {
+    // ถ้าเราเป็นคนแรก → เป็น Caller
+    if (!peerConnection) {
+        createPeerConnection();
+        peerConnection.createOffer().then(offer => {
             peerConnection.setLocalDescription(offer);
-            socket.emit("offer", { room, offer, user: username });
+            socket.emit("offer", { room, offer });
         });
+    }
 });
 
+// รับ offer → ตอบ answer
 socket.on("offer", data => {
     console.log("ได้รับ offer:", data);
-    createPeerConnection();
-    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+    if (!peerConnection) createPeerConnection();
 
-    peerConnection.createAnswer()
+    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+        .then(() => peerConnection.createAnswer())
         .then(answer => {
             peerConnection.setLocalDescription(answer);
-            socket.emit("answer", { room, answer, user: username });
+            socket.emit("answer", { room, answer });
         });
 });
 
+// รับ answer
 socket.on("answer", data => {
     console.log("ได้รับ answer:", data);
     peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
 });
 
+// รับ ICE candidate
 socket.on("candidate", data => {
     console.log("ได้รับ candidate:", data);
-    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    if (peerConnection) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
 });
 
+// ใครออกห้อง
 socket.on("user-left", data => {
     console.log("คู่สนทนาออกจากห้อง:", data);
     if (remoteVideo.srcObject) {
@@ -107,6 +103,6 @@ socket.on("user-left", data => {
 });
 
 // -----------------------------
-// เริ่มต้นใช้งาน
+// เริ่มใช้งาน
 // -----------------------------
 initLocalStream();
