@@ -14,7 +14,9 @@ let localStream;
 let peerConnection;
 const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-const socket = io();
+const socket = io("https://webappvideocall.onrender.com", {
+  transports: ['websocket']
+});
 
 // -----------------------------
 // เตรียมกล้อง/ไมค์

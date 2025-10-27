@@ -14,7 +14,9 @@ const hnInput = document.getElementById('HN');
 const nameInput = document.getElementById('name');
 const patientForm = document.getElementById('patientForm');
 
-const socket = io();
+const socket = io("https://webappvideocall.onrender.com", {
+  transports: ['websocket']
+});
 let localStream = null;
 let peerConnection = null;
 let isCallActive = false;

@@ -1,5 +1,7 @@
 // ------------------ Socket.io ------------------
-const socket = io();
+const socket = io("https://webappvideocall.onrender.com", {
+  transports: ['websocket']
+});
 
 // ------------------ Global Variables ------------------
 let localStream;
