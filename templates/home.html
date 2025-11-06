@@ -9,23 +9,23 @@
 
     {% if role == 'admin' %}
         <a href="{{ url_for('pending_doctors') }}" class="nav-link">อนุมัติหมอ</a>
+
+        <!-- Dropdown เมนูฐานข้อมูล -->
+        <div class="dropdown">
+            <div class="nav-link" id="dropdownBtn" style="cursor:pointer;">
+                ฐานข้อมูล ▼
+            </div>
+            <div id="dropdownMenu">
+                <a href="{{ url_for('view_table', table_name='users') }}">Users</a>
+                <a href="{{ url_for('view_table', table_name='patient') }}">Patient</a>
+                <a href="{{ url_for('view_table', table_name='learn') }}">Learn</a>
+                <a href="{{ url_for('view_table', table_name='followup') }}">Follow Up</a>
+            </div>
+        </div>
     {% endif %}
 {% endblock %}
 
 {% block content %}
-
-<!-- Flash messages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-messages">
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
 
 <div class="hero-section">
     <div class="hero-content">
@@ -68,4 +68,37 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dropdown script loaded');
+    
+    const btn = document.getElementById('dropdownBtn');
+    const menu = document.getElementById('dropdownMenu');
+
+    console.log('Button:', btn);
+    console.log('Menu:', menu);
+
+    if (btn && menu) {
+        // Toggle dropdown เมื่อคลิก
+        btn.addEventListener('click', function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Dropdown clicked!');
+            menu.classList.toggle('show');
+            console.log('Has show class:', menu.classList.contains('show'));
+        });
+
+        // ปิด dropdown เมื่อคลิกข้างนอก
+        document.addEventListener('click', function(e){
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+    } else {
+        console.error('ไม่พบ dropdown elements!');
+    }
+});
+</script>
+
 {% endblock %}

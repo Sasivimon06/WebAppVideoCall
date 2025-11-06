@@ -10,7 +10,7 @@ body {
     line-height: 1.6;
     color: #333;
     background-color: #f8fafc;
-    overflow: hidden; /* ป้องกันการเลื่อนหน้าจอ */
+    overflow: auto; 
 }
 
 /* Navigation */
@@ -19,7 +19,70 @@ body {
     color: white;
     padding: 1rem 0;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    
+    position: relative;
+}
+
+.navbar .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+#dropdownBtn {
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem 1rem;
+    font-size: 14px; /* ลดขนาดฟอนต์ */
+}
+
+#dropdownBtn:hover {
+    opacity: 0.9;
+}
+
+/* ปรับขนาด dropdown ให้เล็กลง */
+#dropdownMenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #5563DE;
+    min-width: 140px; /* ลดจาก 180px */
+    z-index: 1000;
+    border-radius: 4px; /* ลดความโค้งมน */
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    margin-top: 3px; /* ลดระยะห่าง */
+}
+
+#dropdownMenu.show {
+    display: block;
+}
+
+#dropdownMenu a {
+    color: white;
+    padding: 8px 12px; /* ลดจาก 12px 16px */
+    display: block;
+    text-decoration: none;
+    transition: background-color 0.3s;
+    font-size: 18px; /* เพิ่มขนาดฟอนต์เล็กลง */
+}
+
+#dropdownMenu a:hover {
+    background-color: #3a4bb8;
+    border-radius: 2px;
+}
+
+/* ปรับ border radius ของ item แรกและสุดท้าย */
+#dropdownMenu a:first-child {
+    border-radius: 4px 4px 0 0;
+}
+
+#dropdownMenu a:last-child {
+    border-radius: 0 0 4px 4px;
 }
 
 .nav-title a {
@@ -750,16 +813,26 @@ body {
     text-align: center;
 }
 
-.flash.success { background-color: #10b981; }
+.flash.success { background-color: #28a745; }
 .flash.info { background-color: #3b82f6; }
+.flash.warning { background-color: #f59e0b; }
 .flash.error { background-color: #ef4444; }
 
 @keyframes slideIn {
-    from { transform: translate(-50%, -50%) translateY(-20px); opacity: 0; }
-    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    from { 
+        transform: translateX(-50%) translateY(-20px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(-50%) translateY(0); 
+        opacity: 1; 
+    }
 }
 
 @keyframes fadeOut {
-    to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { 
+        opacity: 0; 
+        transform: translateX(-50%) translateY(-20px); 
+    }
 }
 

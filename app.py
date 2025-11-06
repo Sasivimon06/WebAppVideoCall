@@ -11,11 +11,27 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from aiortc import RTCPeerConnection, RTCSessionDescription  # สำหรับ WebRTC
 import json
+from flask_sqlalchemy import SQLAlchemy
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+import webbrowser
+import time
+from threading import Thread
+
+def open_browser_safe():
+    try:
+        time.sleep(1)  # รอ server start
+        webbrowser.open_new("http://127.0.0.1:5000")
+    except:
+        pass  # ป้องกัน crash เมื่อไม่มี console
+
+# เรียกใช้ใน Thread
+Thread(target=open_browser_safe).start()
 
 app = Flask(__name__)
 app.secret_key = 'this_is_a_test_key_for_demo'
 RFID_API_KEY = "my_secure_token_only_for_demo"  
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 pcs = {}  # Dictionary เพื่อเก็บ peer connections ตาม room/user
 
 OTP_EXPIRE_MINUTES = 3
@@ -39,6 +55,40 @@ s = URLSafeTimedSerializer(app.secret_key)
 def favicon():
     return send_from_directory(app.static_folder, 'favicon.ico')
 
+# 🔧 เชื่อมต่อกับฐานข้อมูล users.db
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = 'your_secret_key'
+
+db = SQLAlchemy(app)
+
+# 🧱 Model ของตาราง users
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    role = db.Column(db.String(50), nullable=False)           # admin, doctor, patient
+    is_verified = db.Column(db.Integer, default=0)
+    otp = db.Column(db.String(10))
+    otp_created_at = db.Column(db.String(50))
+
+    def __repr__(self):
+        return f'<User {self.username}>'
+    
+class AdminOnlyModelView(ModelView):
+    def is_accessible(self):
+        return 'user_id' in session and session.get("role") == "admin"
+
+    def inaccessible_callback(self, name, **kwargs):
+        flash("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "danger")
+        return redirect(url_for("home"))
+
+# 🧭 สร้างหน้า Flask-Admin
+admin = Admin(app, name='User Database Viewer')
+admin.add_view(AdminOnlyModelView(User, db.session))
+
 # Database 
 def init_users_db():
     conn = sqlite3.connect('users.db')
@@ -57,6 +107,7 @@ def init_users_db():
     ''')
     conn.commit()
     conn.close()
+
 
 """ conn = sqlite3.connect('users.db')
 c = conn.cursor()
@@ -338,11 +389,24 @@ def register_login():
                 flash("อีเมลนี้มีผู้ใช้แล้ว", "danger")
             return redirect(url_for('register_login'))
 
+        # 🔍 ตรวจว่ามีผู้ใช้ในระบบแล้วหรือยัง
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        user_count = c.fetchone()[0]
+        conn.close()
+
+        # ✅ ถ้าสมัครเป็นคนแรก → เป็น admin ทันที
+        if user_count == 0:
+            role = 'admin'
+            is_verified = 1
+            flash("บัญชีแรกของระบบจะถูกตั้งเป็นผู้ดูแล (Admin)", "info")
+        else:
+            # ถัดจากนั้น ใช้กฎปกติ (patient ยืนยันเอง / doctor ต้องรอ admin)
+            is_verified = 1 if role == 'patient' else 0
+
         # สร้าง OTP และเก็บข้อมูลใน session รอ confirm
         otp = generate_otp()
-        
-        is_verified = 1 if role == 'patient' else 0  # ผู้ป่วยยืนยันเอง, หมอต้องรอ admin
-
         session['register_pending_user'] = {
             'username': username,
             'password': generate_password_hash(password),
@@ -352,7 +416,7 @@ def register_login():
             'role': role,
             'is_verified': is_verified
         }
-        
+
         print("Sending OTP to", email)
         send_otp_email(email, username, otp, purpose="register")
         flash("กรุณายืนยัน OTP ที่ส่งไปยังอีเมลของคุณ", "info")
@@ -626,6 +690,35 @@ def home():
         video_link = None
 
     return render_template('home.html', current_user=username, role=role, video_link=video_link)
+
+@app.route('/view_table/<table_name>')
+@login_required(role='admin')
+def view_table(table_name):
+    if session.get('role') != 'admin':
+        flash("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "danger")
+        return redirect(url_for('home'))
+
+    # กำหนด mapping: table_name → database file + display name
+    tables = {
+        "users": ("users.db", "Users"),
+        "patient": ("patient.db", "Patient"),
+        "learn": ("learn.db", "Learn"),
+        "followup": ("followup.db", "Follow Up")
+    }
+
+    if table_name not in tables:
+        flash("ฐานข้อมูลไม่ถูกต้อง", "danger")
+        return redirect(url_for('home'))
+
+    db_file, display_name = tables[table_name]
+
+    # อ่านข้อมูลจากฐาน
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    data = conn.execute(f"SELECT * FROM {table_name}").fetchall()
+    conn.close()
+
+    return render_template('view_table.html', data=data, table_name=display_name)
 
 """ # หน้า Home สำหรับ Doctor
 @app.route('/doctor/home')
@@ -1114,7 +1207,7 @@ if __name__ == '__main__':
     # ใช้ socketio.run() แทน app.run()
     socketio.run(
         app,
-        debug=True,
+        debug=False,
         host='0.0.0.0',
         port=5000,
         allow_unsafe_werkzeug=True  # สำหรับ development เท่านั้น

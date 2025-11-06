@@ -505,7 +505,7 @@ video[srcObject] ~ .video-placeholder {
 }
 
 .message.info {
-    border-left: 4px solid #17a2b8;
+    border-left: 4px solid #3b82f6;
 }
 
 .message i {
@@ -515,7 +515,7 @@ video[srcObject] ~ .video-placeholder {
 .message.success i { color: #28a745; }
 .message.error i { color: #dc3545; }
 .message.warning i { color: #ffc107; }
-.message.info i { color: #17a2b8; }
+.message.info i { color: #3b82f6; }
 
 @keyframes slideIn {
     from {
