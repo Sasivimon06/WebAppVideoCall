@@ -48,15 +48,13 @@ async function startLocalVideo() {
             audio: true 
         });
         localVideo.srcObject = localStream;
-
-        // เริ่มเปิดกล้องและไมค์ (เพื่อให้เห็นตัวเอง)
         localStream.getAudioTracks()[0].enabled = true;
         localStream.getVideoTracks()[0].enabled = true;
         
         updateMicIcon();
         updateVideoIcon();
 
-        console.log('[INFO] Local video started');
+        console.log('[INFO] Local video initialized');
     } catch (err) {
         console.error('[ERROR] Cannot access media devices:', err);
         showMessage('ไม่สามารถเข้าถึงกล้องหรือไมโครโฟนได้', 'error');
@@ -79,11 +77,10 @@ function setupPeerConnection() {
         console.log('[INFO] Remote track received');
         remoteVideo.srcObject = event.streams[0];
 
-        // เช็คว่า video track พร้อมใช้งาน
         const videoTrack = event.streams[0].getVideoTracks()[0];
         if (videoTrack) {
             console.log('[INFO] Remote video track ready');
-            updateStatus('เชื่อมต่อสำเร็จ ✓', 'connected');
+            updateStatus('เชื่อมต่อสำเร็จ', 'connected');
             showMessage('เชื่อมต่อกับแพทย์สำเร็จ', 'success');
         }
     };
@@ -99,7 +96,6 @@ function setupPeerConnection() {
         }
     };
 
-    // ตรวจสอบสถานะการเชื่อมต่อ
     peerConnection.oniceconnectionstatechange = () => {
         console.log('[INFO] ICE state:', peerConnection.iceConnectionState);
         if (peerConnection.iceConnectionState === 'disconnected' || 
@@ -116,13 +112,13 @@ async function answerCall() {
     console.log('[INFO] Answering call');
     
     try {
-        // 1. เริ่มต้น local video stream
-        await startLocalVideo();
+        // 1. ถ้ายังไม่มี local stream ให้เริ่ม
+        if (!localStream) await startLocalVideo();
         
         // 2. สร้าง peer connection
         setupPeerConnection();
         
-        // 3. ตั้งค่า remote description จาก offer ที่ได้รับ
+        // 3. ตั้งค่า remote description จาก offer
         await peerConnection.setRemoteDescription(
             new RTCSessionDescription({ 
                 sdp: pendingOffer.sdp, 
@@ -150,21 +146,18 @@ async function answerCall() {
         answerBtn.style.display = 'none';
         endCallBtn.style.display = 'inline-flex';
         
-        // ล้าง pending offer
         pendingOffer = null;
         
         updateStatus('กำลังเชื่อมต่อ...', 'connecting');
         showMessage('กำลังเชื่อมต่อกับแพทย์...', 'info');
         
-        // ตั้งค่า timeout เพื่อตรวจสอบการเชื่อมต่อ
+        stopRingtone();
+        
         setTimeout(() => {
             if (peerConnection && peerConnection.iceConnectionState === 'connected') {
                 updateStatus('เชื่อมต่อสำเร็จ', 'connected');
             }
         }, 1000);
-        
-        // หยุดเสียงเรียกเข้า
-        stopRingtone();
         
     } catch (err) {
         console.error('[ERROR] Answer call failed:', err);
@@ -173,10 +166,12 @@ async function answerCall() {
     }
 }
 
-// ------------------ Toggle Mic ------------------
+// ---------------------
+// Toggle Mic / Video
+// ---------------------
 function toggleMic() {
     if (!localStream) {
-        showMessage('กรุณารับสายก่อน', 'warning');
+        showMessage('กรุณาเปิดกล้องก่อน', 'warning');
         return;
     }
     const track = localStream.getAudioTracks()[0];
@@ -184,22 +179,22 @@ function toggleMic() {
     updateMicIcon();
 }
 
-function updateMicIcon() {
-    const icon = document.getElementById('micIcon');
-    const isEnabled = localStream.getAudioTracks()[0].enabled;
-    icon.className = isEnabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
-    micBtn.classList.toggle('active', isEnabled);
-}
-
-// ------------------ Toggle Video ------------------
 function toggleVideo() {
     if (!localStream) {
-        showMessage('กรุณารับสายก่อน', 'warning');
+        showMessage('กรุณาเปิดกล้องก่อน', 'warning');
         return;
     }
     const track = localStream.getVideoTracks()[0];
     track.enabled = !track.enabled;
     updateVideoIcon();
+}
+
+function updateMicIcon() {
+    const icon = document.getElementById('micIcon');
+    const isEnabled = localStream.getAudioTracks()[0].enabled;
+    icon.className = isEnabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
+    console.log(icon.className);
+    micBtn.classList.toggle('active', isEnabled);
 }
 
 function updateVideoIcon() {
@@ -218,17 +213,10 @@ function endCall() {
         peerConnection = null;
     }
 
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-    }
-
     if (remoteVideo.srcObject) {
         remoteVideo.srcObject.getTracks().forEach(track => track.stop());
         remoteVideo.srcObject = null;
     }
-
-    localVideo.srcObject = null;
 
     if (currentRoom) {
         socket.emit('leave', { room: currentRoom, username: 'Patient' });
@@ -246,27 +234,20 @@ function endCall() {
 
 // ------------------ Helper: Room Name ------------------
 function getRoomName() {
-    // ใช้ HN เป็น room name (ต้องตรงกับฝั่งหมอ)
     return 'consultation_room_' + currentHN;
 }
 
 // ------------------ Socket Events ------------------
-// เก็บ offer ไว้ใช้ตอนรับสาย
 let pendingOffer = null;
 
 socket.on('offer_received', async data => {
     console.log('[INFO] Offer received');
-    
-    // เก็บ offer ไว้
     pendingOffer = data;
     
     if (!isCallActive) {
-        // แสดงปุ่มรับสาย
         answerBtn.classList.add('ringing');
         showMessage('มีสายเรียกเข้าจากแพทย์!', 'success');
         updateStatus('มีสายเรียกเข้า...', 'ringing');
-        
-        // เล่นเสียงเรียกเข้า (optional)
         playRingtone();
     }
 });
@@ -322,7 +303,6 @@ function showMessage(message, type = 'info') {
 // ------------------ Ringtone (Optional) ------------------
 let ringtone = null;
 function playRingtone() {
-    // สามารถใส่ไฟล์เสียงเรียกเข้าได้
     // ringtone = new Audio('/static/sounds/ringtone.mp3');
     // ringtone.loop = true;
     // ringtone.play();
@@ -336,21 +316,28 @@ function stopRingtone() {
 }
 
 // ------------------ Initialize ------------------
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     if (!currentHN) {
         showMessage('ไม่พบข้อมูลผู้ป่วย กรุณาลงทะเบียนก่อน', 'error');
         answerBtn.disabled = true;
         return;
     }
 
-    // Join room และรอรับสาย
+    // เริ่มต้นกล้องและไมค์
+    await startLocalVideo();
+
+    // ผูก event listener ให้ปุ่ม
+    micBtn.disabled = false;
+    videoBtn.disabled = false;
+    micBtn.addEventListener('click', toggleMic);
+    videoBtn.addEventListener('click', toggleVideo);
+
+    // เข้าห้องรอรับสาย
     currentRoom = getRoomName();
     socket.emit('join', { room: currentRoom, username: 'Patient_Waiting' });
     
     updateStatus('พร้อมรับสาย', 'ready');
     endCallBtn.style.display = 'none';
-    
-    console.log('[INFO] Patient ready in room:', currentRoom);
 });
 
 // ป้องกันการปิดหน้าต่างขณะโทร
