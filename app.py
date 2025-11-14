@@ -1,3 +1,4 @@
+import email
 from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, render_template, request, redirect, send_from_directory, url_for, jsonify, session, flash
@@ -320,11 +321,6 @@ def is_expired(created_at):
 #สร้าง OTP และส่ง สำหรับ registerกับ reset password
 def send_otp_email(email, username, otp, purpose="register"):
     try:
-        # เช็คว่า mail config ครบไหม
-        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-            print("[ERROR] MAIL_USERNAME หรือ MAIL_PASSWORD ไม่ได้ตั้งค่า")
-            return False
-            
         if purpose == "register":
             subject = "รหัส OTP สำหรับลงทะเบียน"
             body = (
@@ -348,8 +344,7 @@ def send_otp_email(email, username, otp, purpose="register"):
                 f"รหัส OTP ของคุณคือ: {otp}\n"
                 f"รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที\n\n"
             )
-
-        sender_email = app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME')
+        sender_email = app.config.get('MAIL_DEFAULT_SENDER')
         
         msg = Message(
             subject=subject,
@@ -357,31 +352,16 @@ def send_otp_email(email, username, otp, purpose="register"):
             recipients=[email]
         )
         msg.body = body
-        
-        print(f"[DEBUG] กำลังส่งเมลไปที่: {email}")
-        print(f"[DEBUG] จาก: {sender_email}")
-        print(f"[DEBUG] SMTP Server: {app.config.get('MAIL_SERVER')}")
-        print(f"[DEBUG] SMTP Port: {app.config.get('MAIL_PORT')}")
-        
+        print("[DEBUG] sender_email:", sender_email)
+        print("[DEBUG] recipients:", email)
+        print("ก่อนส่งเมล")
+
         mail.send(msg)
-        
-        print(f"[SUCCESS] ส่งอีเมล OTP เรียบร้อยแล้ว: {email}")
-        return True
-        
-    except SMTPAuthenticationError as e:
-        print(f"[ERROR] การยืนยันตัวตน SMTP ล้มเหลว: {e}")
-        print("[HINT] ตรวจสอบ MAIL_USERNAME และ MAIL_PASSWORD")
-        return False
-        
-    except SMTPException as e:
-        print(f"[ERROR] SMTP Error: {e}")
-        return False
-        
+        print("ส่งเมลสำเร็จ")
+        print(f"[INFO] ส่งอีเมล OTP เรียบร้อยแล้ว: {email}")
+
     except Exception as e:
-        print(f"[ERROR] การส่งอีเมลล้มเหลว: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        print("[ERROR] การส่งอีเมลล้มเหลว:", e)
 
 @app.route('/register_login', methods=['GET', 'POST'])
 def register_login():
