@@ -17,6 +17,7 @@ from flask_admin.contrib.sqla import ModelView
 import webbrowser
 import time
 from threading import Thread
+import os
 
 def open_browser_safe():
     try:
@@ -40,12 +41,12 @@ MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ค�
 BLOCK_TIME_MINUTES = 10
 
 app.config.update(
-    MAIL_SERVER='smtp.gmail.com',  # ตัวอย่าง: smtp.gmail.com, หรือ SMTP เซิร์ฟเวอร์ของคุณ
-    MAIL_PORT=587,
-    MAIL_USE_TLS=True,
-    MAIL_USERNAME='sasivimon.0606@gmail.com',   # อีเมลผู้ส่ง (ต้องเป็นของโดเมนคุณ)
-    MAIL_PASSWORD='rulnyhqjunfxeobz',
-    MAIL_DEFAULT_SENDER=('ระบบยืนยันตัวตน', 'sasivimon.0606@gmail.com')  # ชื่อแสดงและอีเมลผู้ส่ง
+    MAIL_SERVER=os.environ.get("MAIL_SERVER"),
+    MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
+    MAIL_USE_TLS=os.environ.get("MAIL_USE_TLS") == "True",
+    MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
+    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER")
 )
 
 mail = Mail(app)
