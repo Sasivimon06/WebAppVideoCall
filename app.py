@@ -41,12 +41,13 @@ MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ค�
 BLOCK_TIME_MINUTES = 10
 
 app.config.update(
-    MAIL_SERVER=os.environ.get("MAIL_SERVER"),
+    MAIL_SERVER=os.environ.get("MAIL_SERVER", "smtp.gmail.com"),
     MAIL_PORT=int(os.environ.get("MAIL_PORT", 587)),
-    MAIL_USE_TLS=os.environ.get("MAIL_USE_TLS") == "True",
+    MAIL_USE_TLS=os.environ.get("MAIL_USE_TLS", "True").lower() in ['true', '1', 'yes'],
+    MAIL_USE_SSL=False,
     MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
-    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER")
+    MAIL_DEFAULT_SENDER=os.environ.get("MAIL_DEFAULT_SENDER") or os.environ.get("MAIL_USERNAME")
 )
 
 mail = Mail(app)
@@ -320,6 +321,11 @@ def is_expired(created_at):
 #สร้าง OTP และส่ง สำหรับ registerกับ reset password
 def send_otp_email(email, username, otp, purpose="register"):
     try:
+        # เช็คว่า mail config ครบไหม
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            print("[ERROR] MAIL_USERNAME หรือ MAIL_PASSWORD ไม่ได้ตั้งค่า")
+            return False
+            
         if purpose == "register":
             subject = "รหัส OTP สำหรับลงทะเบียน"
             body = (
@@ -344,18 +350,39 @@ def send_otp_email(email, username, otp, purpose="register"):
                 f"รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที\n\n"
             )
 
+        sender_email = app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME')
+        
         msg = Message(
             subject=subject,
-            sender=("ระบบยืนยันตัวตน", "your_email@gmail.com"),
+            sender=("ระบบยืนยันตัวตน", sender_email),
             recipients=[email]
         )
         msg.body = body
-        print("ก่อนส่งเมล")
+        
+        print(f"[DEBUG] กำลังส่งเมลไปที่: {email}")
+        print(f"[DEBUG] จาก: {sender_email}")
+        print(f"[DEBUG] SMTP Server: {app.config.get('MAIL_SERVER')}")
+        print(f"[DEBUG] SMTP Port: {app.config.get('MAIL_PORT')}")
+        
         mail.send(msg)
-        print("ส่งเมลสำเร็จ")
-        print(f"[INFO] ส่งอีเมล OTP เรียบร้อยแล้ว: {email}")
+        
+        print(f"[SUCCESS] ส่งอีเมล OTP เรียบร้อยแล้ว: {email}")
+        return True
+        
+    except SMTPAuthenticationError as e:
+        print(f"[ERROR] การยืนยันตัวตน SMTP ล้มเหลว: {e}")
+        print("[HINT] ตรวจสอบ MAIL_USERNAME และ MAIL_PASSWORD")
+        return False
+        
+    except SMTPException as e:
+        print(f"[ERROR] SMTP Error: {e}")
+        return False
+        
     except Exception as e:
-        print("[ERROR] การส่งอีเมลล้มเหลว:", e)
+        print(f"[ERROR] การส่งอีเมลล้มเหลว: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 @app.route('/register_login', methods=['GET', 'POST'])
 def register_login():
