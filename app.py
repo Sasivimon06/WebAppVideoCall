@@ -43,12 +43,12 @@ RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-app.config['MAIL_SERVER'] = 'smtp.sendgrid.net'
-app.config['MAIL_PORT'] = 587
+app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER")
+app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT"))
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'apikey'   # คงที่เสมอสำหรับ SendGrid
-app.config['MAIL_PASSWORD'] = os.environ.get('SENDGRID_API_KEY')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")  # apikey
+app.config['MAIL_PASSWORD'] = os.getenv("SENDGRID_API_KEY")
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
 
 mail = Mail(app)
 s = URLSafeTimedSerializer(app.secret_key)
@@ -1214,7 +1214,7 @@ if __name__ == '__main__':
     # ใช้ socketio.run() แทน app.run()
     socketio.run(
         app,
-        debug=False,
+        debug=True,
         host='0.0.0.0',
         port=5000,
         allow_unsafe_werkzeug=True  # สำหรับ development เท่านั้น
