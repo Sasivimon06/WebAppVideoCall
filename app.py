@@ -900,13 +900,13 @@ def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, p
 def get_progress_db(username):
     with sqlite3.connect("learn.db") as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT topic_id, pre_score, post_score, completed_at FROM learn WHERE username=?", (username,))
+        cursor.execute("SELECT topic_id, pre_score, learn_completed, post_score, completed_at FROM learn WHERE username=?", (username,))
         rows = cursor.fetchall()
         progress = {}
-        for topic_id, pre_score, post_score, completed_at in rows:
+        for topic_id, pre_score, learn_completed, post_score, completed_at in rows:
             progress[topic_id] = {
                 "pretest": pre_score is not None,
-                "learn": learn_completed is True,
+                "learn": bool(learn_completed),  
                 "posttest": post_score is not None,
                 "pre_score": pre_score,
                 "post_score": post_score,
