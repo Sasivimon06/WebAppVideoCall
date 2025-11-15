@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, redirect, send_from_directory
 import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
-from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
 import random
 from werkzeug.security import check_password_hash,generate_password_hash
@@ -21,6 +20,8 @@ import webbrowser
 import time
 from threading import Thread
 import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 def open_browser_safe():
     try:
@@ -43,14 +44,9 @@ RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER")
-app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT"))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")  # apikey
-app.config['MAIL_PASSWORD'] = os.getenv("SENDGRID_API_KEY")
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+from_email = os.getenv("EMAIL_FROM")
 
-mail = Mail(app)
 s = URLSafeTimedSerializer(app.secret_key)
 
 @app.route('/favicon.ico')
@@ -323,45 +319,248 @@ def send_otp_email(email, username, otp, purpose="register"):
     try:
         if purpose == "register":
             subject = "รหัส OTP สำหรับลงทะเบียน"
-            body = (
-                f"เรียนคุณ {username},\n\n"
-                f"รหัส OTP ของคุณสำหรับการลงทะเบียนคือ: {otp}\n"
-                f"รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที\n\n"
-                f"หากคุณไม่ได้ร้องขอ โปรดเพิกเฉยต่ออีเมลฉบับนี้\n\n"
-            )
+            html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; background-color: #f4f4f4;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px 0;">
+                    <tr>
+                        <td align="center">
+                            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                
+                                <!-- Header -->
+                                <tr>
+                                    <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; text-align: center;">
+                                        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">ยินดีต้อนรับ!</h1>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Body -->
+                                <tr>
+                                    <td style="padding: 30px 25px;">
+                                        <p style="color: #333333; font-size: 15px; margin: 0 0 8px 0;">
+                                            เรียน <strong>{username}</strong>
+                                        </p>
+                                        
+                                        <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                                            ขอบคุณที่ลงทะเบียนกับระบบของเรา กรุณาใช้รหัส OTP ด้านล่างเพื่อยืนยันการลงทะเบียน:
+                                        </p>
+                                        
+                                        <!-- OTP Box - ขนาดเล็กลง -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                            <tr>
+                                                <td align="center" style="background-color: #667eea; padding: 20px; border-radius: 8px;">
+                                                    <div style="color: #ffffff !important; font-size: 32px; font-weight: bold; letter-spacing: 6px; font-family: 'Courier New', Courier, monospace; text-align: center;">
+                                                        {otp}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <!-- Warning Box -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                            <tr>
+                                                <td style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; border-radius: 4px;">
+                                                    <p style="margin: 0; color: #856404; font-size: 13px;">
+                                                        ⏰ <strong>รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที</strong>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <p style="color: #888888; font-size: 12px; line-height: 1.5; margin: 20px 0 0 0;">
+                                            หากคุณไม่ได้ทำการลงทะเบียน กรุณาเพิกเฉยอีเมลนี้
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="background-color: #f8f9fa; padding: 15px 25px; border-top: 1px solid #e9ecef; text-align: center;">
+                                        <p style="margin: 0; color: #6c757d; font-size: 11px;">
+                                            © 2024 PSU System. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            '''
+            
         elif purpose == "reset":
             subject = "รหัส OTP สำหรับรีเซ็ตรหัสผ่าน"
-            body = (
-                f"เรียนคุณ {username},\n\n"
-                f"รหัส OTP ของคุณสำหรับการรีเซ็ตรหัสผ่านคือ: {otp}\n"
-                f"รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที\n\n"
-                f"หากคุณไม่ได้ร้องขอ โปรดเพิกเฉยต่ออีเมลฉบับนี้\n\n"
-            )
-        else:
-            subject = "รหัส OTP"
-            body = (
-                f"เรียนคุณ {username},\n\n"
-                f"รหัส OTP ของคุณคือ: {otp}\n"
-                f"รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที\n\n"
-            )
-        sender_email = app.config.get('MAIL_DEFAULT_SENDER')
+            html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; background-color: #f4f4f4;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px 0;">
+                    <tr>
+                        <td align="center">
+                            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                
+                                <!-- Header -->
+                                <tr>
+                                    <td style="background-color: #f5576c; padding: 25px; text-align: center;">
+                                        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">รีเซ็ตรหัสผ่าน</h1>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Body -->
+                                <tr>
+                                    <td style="padding: 30px 25px;">
+                                        <p style="color: #333333; font-size: 15px; margin: 0 0 8px 0;">
+                                            เรียน <strong>{username}</strong>
+                                        </p>
+                                        
+                                        <p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                                            เราได้รับคำขอรีเซ็ตรหัสผ่านของคุณ กรุณาใช้รหัส OTP ด้านล่างเพื่อดำเนินการต่อ:
+                                        </p>
+                                        
+                                        <!-- OTP Box - ขนาดเล็กลง -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                            <tr>
+                                                <td align="center" style="background-color: #f5576c; padding: 20px; border-radius: 8px;">
+                                                    <div style="color: #ffffff !important; font-size: 32px; font-weight: bold; letter-spacing: 6px; font-family: 'Courier New', Courier, monospace; text-align: center;">
+                                                        {otp}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <!-- Warning Box -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                            <tr>
+                                                <td style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; border-radius: 4px;">
+                                                    <p style="margin: 0; color: #856404; font-size: 13px;">
+                                                        ⏰ <strong>รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที</strong>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <!-- Security Warning -->
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                            <tr>
+                                                <td style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 12px 15px; border-radius: 4px;">
+                                                    <p style="margin: 0; color: #721c24; font-size: 12px; line-height: 1.5;">
+                                                        🔒 <strong>เพื่อความปลอดภัย:</strong><br>
+                                                        หากคุณไม่ได้ทำการขอรีเซ็ตรหัสผ่าน กรุณาเพิกเฉยอีเมลนี้
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Footer -->
+                                <tr>
+                                    <td style="background-color: #f8f9fa; padding: 15px 25px; border-top: 1px solid #e9ecef; text-align: center;">
+                                        <p style="margin: 0; color: #6c757d; font-size: 11px;">
+                                            © 2024 PSU System. All rights reserved.
+                                        </p>
+                                    </td>
+                                </tr>
+                                
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            '''
         
-        msg = Message(
+        else:
+            # Default simple version
+            subject = "รหัส OTP"
+            html_content = f'''
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px 0;">
+                    <tr>
+                        <td align="center">
+                            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; padding: 25px; border-radius: 10px;">
+                                <tr>
+                                    <td>
+                                        <h2 style="color: #333333; font-size: 20px;">รหัส OTP ของคุณ</h2>
+                                        <p style="color: #555555; font-size: 14px;">เรียน {username},</p>
+                                        
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 15px 0;">
+                                            <tr>
+                                                <td align="center" style="background-color: #4CAF50; padding: 18px; border-radius: 5px;">
+                                                    <div style="color: #ffffff !important; font-size: 28px; font-weight: bold; letter-spacing: 5px; font-family: 'Courier New', Courier, monospace;">
+                                                        {otp}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        <p style="color: #666666; font-size: 13px;">รหัสนี้จะหมดอายุใน {OTP_EXPIRE_MINUTES} นาที</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            '''
+
+        # ส่วนที่เหลือเหมือนเดิม...
+        print(f"[DEBUG] เตรียมส่ง OTP ไปยัง: {email}")
+        print(f"[DEBUG] Purpose: {purpose}")
+        print(f"[DEBUG] OTP: {otp}")
+        
+        api_key = os.getenv("SENDGRID_API_KEY")
+        from_email = os.getenv("EMAIL_FROM") or os.getenv("MAIL_DEFAULT_SENDER")
+        
+        if not api_key:
+            print("[ERROR] SENDGRID_API_KEY ไม่พบใน environment variables")
+            return False
+        
+        if not from_email:
+            print("[ERROR] EMAIL_FROM หรือ MAIL_DEFAULT_SENDER ไม่พบใน environment variables")
+            return False
+        
+        print(f"[DEBUG] From Email: {from_email}")
+        
+        message = Mail(
+            from_email=from_email,
+            to_emails=email,
             subject=subject,
-            sender=("ระบบยืนยันตัวตน", sender_email),
-            recipients=[email]
+            html_content=html_content
         )
-        msg.body = body
-        print("[DEBUG] sender_email:", sender_email)
-        print("[DEBUG] recipients:", email)
-        print("ก่อนส่งเมล")
-
-        mail.send(msg)
-        print("ส่งเมลสำเร็จ")
-        print(f"[INFO] ส่งอีเมล OTP เรียบร้อยแล้ว: {email}")
-
+        
+        sg = SendGridAPIClient(api_key)
+        response = sg.send(message)
+        
+        print(f"[SUCCESS] ส่ง OTP สำเร็จ!")
+        print(f"[SUCCESS] Status Code: {response.status_code}")
+        print(f"[SUCCESS] Message ID: {response.headers.get('X-Message-Id', 'N/A')}")
+        
+        return response.status_code == 202
+        
     except Exception as e:
-        print("[ERROR] การส่งอีเมลล้มเหลว:", e)
+        print(f"[ERROR] ส่งอีเมลล้มเหลว: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 
 @app.route('/register_login', methods=['GET', 'POST'])
 def register_login():
