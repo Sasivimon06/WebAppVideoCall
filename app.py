@@ -926,22 +926,6 @@ def view_table(table_name):
 
     return render_template('view_table.html', data=data, table_name=display_name)
 
-""" # หน้า Home สำหรับ Doctor
-@app.route('/doctor/home')
-@login_required(role='doctor')
-def doctor_home():
-    username = session.get('user')
-    # โหลดข้อมูลเฉพาะหมอ เช่น รายชื่อผู้ป่วย, นัดหมาย ฯลฯ
-    return render_template('doctor_home.html', current_user=username)
-
-# หน้า Home สำหรับ Patient
-@app.route('/patient/home')
-@login_required(role='patient')
-def patient_home():
-    username = session.get('user')
-    # โหลดข้อมูลเฉพาะผู้ป่วย เช่น ประวัติ, วิดีโอคอลกับหมอ ฯลฯ
-    return render_template('patient_home.html', current_user=username)
- """
 def init_patient_db():
     with sqlite3.connect("patient.db") as conn:
         conn.execute('''
@@ -1120,36 +1104,47 @@ def get_progress_db(username):
             }
         return progress
 
-@app.route('/api/progress', methods=['GET'])
-def get_progress():
-    username = request.args.get('username', 'guest')
-    try:
-        progress = get_progress_db(username)
-        if not progress:
-            progress = {
-                'topic1': {'pretest': False, 'learn': False, 'posttest': False},
-                'topic2': {'pretest': False, 'learn': False, 'posttest': False},
-                'topic3': {'pretest': False, 'learn': False, 'posttest': False}
-            }
-        return jsonify({'success': True, 'progress': progress})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/progress', methods=['POST'])
-def save_progress():
-    try:
-        data = request.get_json()
-        username = data['username']
-        topic_id = data['topic_id']
-        pre_score = data.get('pre_score')
-        post_score = data.get('post_score')
-        completed_at = data.get('completed_at')
-
-        save_progress_db(username, topic_id, pre_score, post_score, completed_at)
-
-        return jsonify({'success': True, 'message': 'Progress saved to DB successfully'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+@app.route('/api/progress', methods=['GET', 'POST'])
+def handle_progress():
+    if request.method == 'GET':
+        username = request.args.get('username', 'guest')
+        try:
+            progress = get_progress_db(username)
+            if not progress:
+                progress = {
+                    'topic1': {'pretest': False, 'learn': False, 'posttest': False},
+                    'topic2': {'pretest': False, 'learn': False, 'posttest': False},
+                    'topic3': {'pretest': False, 'learn': False, 'posttest': False}
+                }
+            return jsonify({'success': True, 'progress': progress})
+        except Exception as e:
+            print(f'Error getting progress: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            username = data['username']
+            progress = data.get('progress')  # รับ progress object ทั้งหมด
+            
+            # บันทึก progress ลง database
+            # ปรับให้ตรงกับโครงสร้าง database ของคุณ
+            if progress:
+                for topic_id, steps in progress.items():
+                    pre_score = 100 if steps.get('pretest') else None
+                    post_score = 100 if steps.get('posttest') else None
+                    completed_at = datetime.now().isoformat() if steps.get('posttest') else None
+                    
+                    save_progress_db(username, topic_id, pre_score, post_score, completed_at)
+            
+            return jsonify({'success': True, 'message': 'Progress saved to DB successfully'})
+        except Exception as e:
+            print(f'Error saving progress: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/topics', methods=['GET'])
 def get_topics():
@@ -1176,24 +1171,31 @@ def get_content(topic_id, step_id):
     
 @app.route('/api/submit_answer', methods=['POST'])
 def submit_answer():
-    data = request.get_json()
-    username = data.get('username')
-    topic_id = data.get('topic_id')
-    step_id = data.get('step_id')
-    score = data.get('score')  # รับคะแนนจาก JS
-
-    # สมมุติ completed_at สำหรับ posttest
-    completed_at = datetime.now().isoformat() if step_id == 'posttest' else None
-
-    if step_id == 'pretest':
-        save_progress_db(username, topic_id, pre_score=score)
-    elif step_id == 'posttest':
-        save_progress_db(username, topic_id, post_score=score, completed_at=completed_at)
-    else:  # learn
-        save_progress_db(username, topic_id)
-
-    return jsonify({'success': True, 'score': score, 'message': 'Answer submitted'})
-
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        topic_id = data.get('topic_id')
+        step_id = data.get('step_id')
+        score = data.get('score', 0)
+        
+        print(f'📝 Submit answer: {username}, {topic_id}, {step_id}, score={score}')
+        
+        # บันทึกคะแนนลง database
+        if step_id == 'pretest':
+            save_progress_db(username, topic_id, pre_score=score)
+        elif step_id == 'learn':
+            save_progress_db(username, topic_id, learn_completed=1)
+        elif step_id == 'posttest':
+            save_progress_db(username, topic_id, post_score=score, completed_at=datetime.now().isoformat())
+        
+        return jsonify({'success': True, 'score': score})
+        
+    except Exception as e:
+        print(f'❌ Error submitting answer: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
 @app.route('/static/<path:filename>')
 def static_files(filename):
     try:
@@ -1207,7 +1209,6 @@ def static_files(filename):
             return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
     except FileNotFoundError:
         return "File not found", 404
-
 
 def init_followup_db():
     with sqlite3.connect("followup.db") as conn:

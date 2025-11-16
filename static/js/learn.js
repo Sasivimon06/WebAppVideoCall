@@ -23,13 +23,23 @@ console.log('Current user:', currentUser);
 document.addEventListener('DOMContentLoaded', async function() {
     initializeEventListeners();
 
+    // ✅ รอให้โหลด progress เสร็จก่อน
     if(currentUser && currentUser !== 'guest'){
         await loadProgressFromPython();
     } else {
-        loadProgress(); // fallback localStorage
+        loadProgress();
     }
 
-    restoreLastPage(); // จะเรียก showTopicPage / showStepPage ตาม page เดิม
+    console.log('=== Progress after loading ===');
+    console.log('Current user:', currentUser);
+    console.log('Progress object:', JSON.stringify(progress, null, 2));
+    console.log('============================');
+
+    // ✅ ตอนนี้ progress พร้อมแล้ว
+    restoreLastPage();
+    
+    // ✅ อัปเดต UI อีกครั้งเพื่อให้แน่ใจ
+    updateProgressBars();
 });
 
 // ฟังก์ชันบันทึกหน้าเดิม
@@ -189,11 +199,11 @@ async function completeStep(stepId) {
         score = 100;
     }
 
-    // อัพเดท progress local
+    // ✅ อัพเดท progress local ก่อน
     progress[currentTopic][stepId] = true;
 
-    // ส่งไป server
-     try {
+    // ✅ ส่งไป server แบบเดี่ยว (สำหรับแสดง score)
+    try {
         const response = await fetch('/api/submit_answer', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
@@ -201,7 +211,7 @@ async function completeStep(stepId) {
                 username: currentUser,
                 topic_id: currentTopic,
                 step_id: stepId,
-                answers: {}, // สมมุติ
+                answers: {},
                 score: score
             })
         });
@@ -216,7 +226,10 @@ async function completeStep(stepId) {
         alert('ไม่สามารถส่งคำตอบไป server ได้');
     }
 
-    saveProgress(); // บันทึก localStorage
+    // ✅ บันทึก progress ทั้งหมด
+    await saveProgress();
+    
+    // ✅ อัปเดต UI
     showTopicPage(currentTopic);
 }
 
@@ -245,19 +258,33 @@ function updateStepStatus() {
 
 // อัพเดท Progress Bar
 function updateProgressBars() {
+    // ✅ ตรวจสอบว่า progress โหลดแล้วหรือยัง
+    if (!progress || Object.keys(progress).length === 0) {
+        console.log('Progress not loaded yet, skipping update');
+        return;
+    }
+
     document.querySelectorAll('.topic-card').forEach(card => {
         const topicId = card.dataset.topic;
-        if (!progress[topicId]) return;
+        if (!progress[topicId]) {
+            console.log(`No progress data for ${topicId}`);
+            return;
+        }
 
         const topicProgress = progress[topicId];
 
         // นับจำนวน step ที่เสร็จ
-        const completed = Object.values(topicProgress).filter(v => v).length;
-        const total = Object.keys(topicProgress).length; // ต้องเท่ากับ 3
+        const completed = Object.values(topicProgress).filter(v => v === true).length;
+        const total = Object.keys(topicProgress).length;
 
         // อัปเดต progress bar และตัวเลข
         const progressBar = card.querySelector('.progress');
         const progressCount = card.querySelector('.progress-count');
+
+        if (!progressBar) {
+            console.log(`Progress bar not found for ${topicId}`);
+            return;
+        }
 
         const percentage = Math.round((completed / total) * 100);
         progressBar.style.width = percentage + '%';
@@ -266,20 +293,25 @@ function updateProgressBars() {
         if (progressCount) {
             progressCount.textContent = `${completed}/${total}`;
         }
-    console.log('Topic:', topicId, 'Progress:', topicProgress, 'Completed:', completed, 'Total:', total);
-
+        
+        console.log('Topic:', topicId, 'Progress:', topicProgress, 'Completed:', completed, 'Total:', total, 'Percentage:', percentage);
     });
 }
 
 
 
 // บันทึกความคืบหน้า
-function saveProgress() {
+async function saveProgress() {
     try {
+        // บันทึก localStorage
         localStorage.setItem(`learningProgress_${currentUser}`, JSON.stringify(progress));
-        sendProgressToPython();
+        
+        // ส่งไป server
+        await sendProgressToPython();
+        
+        console.log('✅ Progress saved successfully');
     } catch (error) {
-        console.error('Error saving progress:', error);
+        console.error('❌ Error saving progress:', error);
     }
 }
 
@@ -313,31 +345,45 @@ async function sendProgressToPython(){
 // โหลดความคืบหน้าจาก Python API
 async function loadProgressFromPython() {
     try {
+        console.log('Loading progress from server for user:', currentUser);
+        
         const response = await fetch(`/api/progress?username=${currentUser}`);
         if (response.ok) {
             const data = await response.json();
+            console.log('Received data from server:', data);
+            
             if(data.success && data.progress){
                 const validSteps = ['pretest', 'learn', 'posttest'];
 
+                // ✅ สร้าง progress ใหม่จาก default
                 progress = JSON.parse(JSON.stringify(defaultProgress));
 
+                // ✅ merge ข้อมูลจาก server
                 for (const t in data.progress) {
                     if (progress[t] && typeof data.progress[t] === 'object') {
                         validSteps.forEach(step => {
-                            if(data.progress[t][step] === true){  // ต้องเช็ค === true
+                            if(data.progress[t][step] === true){
                                 progress[t][step] = true;
                             }
                         });
                     }
                 }
+                
+                console.log('Progress loaded from server:', progress);
+                return true; // ✅ บอกว่าโหลดสำเร็จ
             } else {
-                loadProgress(); // fallback จาก localStorage
+                console.log('Invalid data from server, loading from localStorage');
+                loadProgress();
+                return false;
             }
         } else {
-            loadProgress(); // fallback จาก localStorage
+            console.log('Server response not OK, loading from localStorage');
+            loadProgress();
+            return false;
         }
     } catch(err){
         console.error('โหลด progress จาก server ไม่ได้', err);
-        loadProgress(); // fallback จาก localStorage
+        loadProgress();
+        return false;
     }
 }

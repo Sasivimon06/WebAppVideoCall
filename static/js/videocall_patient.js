@@ -58,6 +58,7 @@ async function startLocalVideo() {
     } catch (err) {
         console.error('[ERROR] Cannot access media devices:', err);
         showMessage('ไม่สามารถเข้าถึงกล้องหรือไมโครโฟนได้', 'error');
+        throw err;
     }
 }
 
@@ -190,14 +191,17 @@ function toggleVideo() {
 }
 
 function updateMicIcon() {
+    if (!localStream || !localStream.getAudioTracks()[0]) return;
+    
     const icon = document.getElementById('micIcon');
     const isEnabled = localStream.getAudioTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-microphone' : 'fas fa-microphone-slash';
-    console.log(icon.className);
     micBtn.classList.toggle('active', isEnabled);
 }
 
 function updateVideoIcon() {
+    if (!localStream || !localStream.getVideoTracks()[0]) return;
+    
     const icon = document.getElementById('videoIcon');
     const isEnabled = localStream.getVideoTracks()[0].enabled;
     icon.className = isEnabled ? 'fas fa-video' : 'fas fa-video-slash';
@@ -323,14 +327,34 @@ window.addEventListener('load', async () => {
         return;
     }
 
-    // เริ่มต้นกล้องและไมค์
-    await startLocalVideo();
+    try {
+        // เริ่มต้นกล้องและไมค์
+        await startLocalVideo();
 
-    // ผูก event listener ให้ปุ่ม
-    micBtn.disabled = false;
-    videoBtn.disabled = false;
-    micBtn.addEventListener('click', toggleMic);
-    videoBtn.addEventListener('click', toggleVideo);
+        // เช็คว่า localStream ถูกสร้างจริงๆ
+        if (!localStream) {
+            throw new Error('Failed to initialize media stream');
+        }
+
+        micBtn.disabled = false;
+        videoBtn.disabled = false;
+        answerBtn.disabled = false;
+        
+        micBtn.addEventListener('click', toggleMic);
+        videoBtn.addEventListener('click', toggleVideo);
+        answerBtn.addEventListener('click', answerCall);
+        endCallBtn.addEventListener('click', endCall);
+
+        console.log('[INFO] Controls enabled');
+        
+    } catch (err) {
+        console.error('[ERROR] Failed to start media:', err);
+        showMessage('ไม่สามารถเปิดกล้องได้', 'error');
+        
+        if (micBtn) micBtn.disabled = true;
+        if (videoBtn) videoBtn.disabled = true;
+        return;
+    }
 
     // เข้าห้องรอรับสาย
     currentRoom = getRoomName();
