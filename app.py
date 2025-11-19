@@ -1,4 +1,3 @@
-import email
 from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, render_template, request, redirect, send_from_directory, url_for, jsonify, session, flash
@@ -11,7 +10,7 @@ from werkzeug.security import check_password_hash,generate_password_hash
 from dateutil.relativedelta import relativedelta
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from aiortc import RTCPeerConnection, RTCSessionDescription  # สำหรับ WebRTC
+from aiortc import RTCPeerConnection, RTCSessionDescription  
 import json
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
@@ -25,10 +24,10 @@ from sendgrid.helpers.mail import Mail
 
 def open_browser_safe():
     try:
-        time.sleep(1)  # รอ server start
+        time.sleep(1)  
         webbrowser.open_new("http://127.0.0.1:5000")
     except:
-        pass  # ป้องกัน crash เมื่อไม่มี console
+        pass  
 
 # เรียกใช้ใน Thread
 Thread(target=open_browser_safe).start()
@@ -53,14 +52,14 @@ s = URLSafeTimedSerializer(app.secret_key)
 def favicon():
     return send_from_directory(app.static_folder, 'favicon.ico')
 
-# 🔧 เชื่อมต่อกับฐานข้อมูล users.db
+# เชื่อมต่อกับฐานข้อมูล users.db
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'
 
 db = SQLAlchemy(app)
 
-# 🧱 Model ของตาราง users
+# Model ของตาราง users
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -83,7 +82,7 @@ class AdminOnlyModelView(ModelView):
         flash("คุณไม่มีสิทธิ์เข้าถึงหน้านี้", "danger")
         return redirect(url_for("home"))
 
-# 🧭 สร้างหน้า Flask-Admin
+# สร้างหน้า Flask-Admin
 admin = Admin(app, name='User Database Viewer')
 admin.add_view(AdminOnlyModelView(User, db.session))
 
@@ -105,26 +104,6 @@ def init_users_db():
     ''')
     conn.commit()
     conn.close()
-
-
-""" conn = sqlite3.connect('users.db')
-c = conn.cursor()
-
-init_users_db()
-
-username = 'admin'
-password = generate_password_hash('admin123456')
-email = 'eye.sasiwimon999@gmail.com'
-role = 'admin'
-is_verified = 1
-
-c.execute(
-    "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
-    (username, email, password, role, is_verified)
-)
-conn.commit()
-conn.close()
-print("Admin user created!") """
 
 def create_user(username, password, email):
     conn = sqlite3.connect('users.db')
@@ -197,7 +176,7 @@ def add_user():
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
         email = request.form['email']
-        role = request.form['role']  # doctor / patient
+        role = request.form['role']  
         is_verified = 1  # admin อนุมัติแล้ว
 
         with sqlite3.connect('users.db') as conn:
@@ -520,11 +499,6 @@ def send_otp_email(email, username, otp, purpose="register"):
             </body>
             </html>
             '''
-
-        # ส่วนที่เหลือเหมือนเดิม...
-        print(f"[DEBUG] เตรียมส่ง OTP ไปยัง: {email}")
-        print(f"[DEBUG] Purpose: {purpose}")
-        print(f"[DEBUG] OTP: {otp}")
         
         api_key = os.getenv("SENDGRID_API_KEY")
         from_email = os.getenv("EMAIL_FROM") or os.getenv("MAIL_DEFAULT_SENDER")
@@ -548,11 +522,6 @@ def send_otp_email(email, username, otp, purpose="register"):
         
         sg = SendGridAPIClient(api_key)
         response = sg.send(message)
-        
-        print(f"[SUCCESS] ส่ง OTP สำเร็จ!")
-        print(f"[SUCCESS] Status Code: {response.status_code}")
-        print(f"[SUCCESS] Message ID: {response.headers.get('X-Message-Id', 'N/A')}")
-        
         return response.status_code == 202
         
     except Exception as e:
@@ -561,7 +530,6 @@ def send_otp_email(email, username, otp, purpose="register"):
         traceback.print_exc()
         return False
 
-
 @app.route('/register_login', methods=['GET', 'POST'])
 def register_login():
     if request.method == 'POST':
@@ -569,7 +537,7 @@ def register_login():
         email = request.form.get('email').strip().lower()
         password = request.form.get('password').strip()
         confirm_password = request.form.get('confirm_password').strip()
-        role = request.form.get('role')  # ฟอร์มมี select role: patient / doctor
+        role = request.form.get('role')  
 
         # ตรวจความถูกต้องของข้อมูลพื้นฐาน
         if not username or not email or not password or not confirm_password:
@@ -595,14 +563,14 @@ def register_login():
                 flash("อีเมลนี้มีผู้ใช้แล้ว", "danger")
             return redirect(url_for('register_login'))
 
-        # 🔍 ตรวจว่ามีผู้ใช้ในระบบแล้วหรือยัง
+        # ตรวจว่ามีผู้ใช้ในระบบแล้วหรือยัง
         conn = sqlite3.connect('users.db')
         c = conn.cursor()
         c.execute("SELECT COUNT(*) FROM users")
         user_count = c.fetchone()[0]
         conn.close()
 
-        # ✅ ถ้าสมัครเป็นคนแรก → เป็น admin ทันที
+        # ถ้าสมัครเป็นคนแรก → เป็น admin
         if user_count == 0:
             role = 'admin'
             is_verified = 1
@@ -630,7 +598,6 @@ def register_login():
 
     return render_template('register_login.html')
 
-
 # ส่ง OTP อีกรอบหน้า register_login
 @app.route('/resend_register_otp', methods=['POST'])
 def resend_register_otp():
@@ -638,7 +605,6 @@ def resend_register_otp():
     if not register_pending_user:
         return jsonify(success=False, message="ไม่พบข้อมูลสำหรับลงทะเบียน กรุณาเริ่มขั้นตอนใหม่"), 400
   
-
     username = register_pending_user['username']
     email = register_pending_user['email']
     otp = generate_otp()
@@ -666,14 +632,11 @@ def resend_reset_otp():
 
     email = reset_pending_user['email']
     username = reset_pending_user['username']  
-
     otp = generate_otp()
     reset_pending_user['otp'] = otp
     reset_pending_user['otp_created_at'] = datetime.now().isoformat()
     session['reset_pending_user'] = reset_pending_user
-
     send_otp_email(email, username, otp, purpose="reset")
-
     expire_timestamp = int((datetime.now() + timedelta(minutes=OTP_EXPIRE_MINUTES)).timestamp() * 1000)
 
     return jsonify(
@@ -733,7 +696,7 @@ def register_verify_otp():
                 flash("รอผู้ดูแลระบบอนุมัติบัญชี", "info")
             return redirect(url_for('login'))
 
-    # ส่ง timestamp ที่ OTP จะหมดอายุ (milliseconds for JS)
+    # ส่ง timestamp ที่ OTP จะหมดอายุ
     expire_timestamp = int((datetime.now() + timedelta(minutes=OTP_EXPIRE_MINUTES)).timestamp() * 1000)
     username = register_pending_user['username']
                                      
@@ -814,7 +777,7 @@ def reset_verify_otp():
         session.pop('reset_pending_user', None)
         return redirect(url_for('forgot_password'))
 
-    # ตรวจสอบหมดอายุ OTP ก่อน (ตอน GET)
+    # ตรวจสอบหมดอายุ OTP ก่อน
     if datetime.now() - otp_created_at > timedelta(minutes=OTP_EXPIRE_MINUTES):
         flash("รหัส OTP หมดอายุ กรุณาขอรหัสใหม่", "danger")
         session.pop('reset_pending_user', None)
@@ -832,7 +795,7 @@ def reset_verify_otp():
         else:
             flash("รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่", "danger")
 
-    # ส่ง timestamp ที่ OTP จะหมดอายุ (milliseconds for JS)
+    # ส่ง timestamp ที่ OTP จะหมดอายุ
     expire_timestamp = int((otp_created_at + timedelta(minutes=OTP_EXPIRE_MINUTES)).timestamp() * 1000)
 
     return render_template(
@@ -841,7 +804,7 @@ def reset_verify_otp():
         OTP_EXPIRE_MINUTES=OTP_EXPIRE_MINUTES,
         otp_expire_timestamp=expire_timestamp,
         reset_pending_username=reset_pending_user['username'],
-        otp_flow_type="reset"  # สำหรับใช้ใน JS หรือ Template แยก flow
+        otp_flow_type="reset"  
     )
 
 @app.route('/reset_password', methods=['GET', 'POST'])
@@ -882,7 +845,7 @@ def reset_password():
 @login_required()
 def home():
     username = session.get('user')
-    role = session.get('role')  # เก็บ role แยกใน session
+    role = session.get('role')  
 
     if not username:
         flash("กรุณาเข้าสู่ระบบก่อน", "warning")
@@ -969,7 +932,7 @@ def register_patient():
         # บันทึกลงฐานข้อมูล SQLite
         with sqlite3.connect("patient.db") as conn:
             cursor = conn.cursor()
-            # 🔹 เช็ก HN ซ้ำ
+            # เช็ก HN ซ้ำ
             cursor.execute(
                 "SELECT 1 FROM patient WHERE HN = ? AND username = ?",
                 (HN, username)
@@ -978,7 +941,7 @@ def register_patient():
                 flash("HN นี้มีอยู่แล้วในบัญชีคุณ", "info")
                 return jsonify({"error": "HN นี้มีอยู่แล้วในบัญชีคุณ"}), 400
                 
-            # 🔹 ถ้าไม่มี → insert ใหม่
+            # ถ้าไม่มี → insert ใหม่
             cursor.execute(
                 "INSERT INTO patient (HN, name, birth_date, gender, phone, disease, username) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -1063,7 +1026,37 @@ def init_learn_db():
 @app.route('/learn')
 @login_required()
 def learn():
-    username = session['user']  # session['user'] เป็น str ของ username
+    username = session.get('user')
+    
+    # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
+    last_patient = session.get('last_patient')
+
+    if not last_patient:
+        # ถ้าไม่มีใน session ให้ลองดึงจาก DB
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT HN, name, birth_date, gender, phone, disease "
+                "FROM patient WHERE username = ? ORDER BY created_at DESC LIMIT 1",
+                (username,)
+            )
+            row = cursor.fetchone()
+            
+            if row:
+                last_patient = {
+                    "HN": row[0],
+                    "name": row[1],
+                    "birthDate": row[2],
+                    "gender": row[3],
+                    "phone": row[4],
+                    "disease": row[5]
+                }
+                session['last_patient'] = last_patient
+            else:
+                # ถ้ายังไม่มีข้อมูลเลย ให้ redirect ไปหน้า register
+                flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเข้าใช้งานระบบ", "warning")
+                return redirect(url_for('register_patient'))
+
     return render_template('learn.html', current_user=username)
 
 def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
@@ -1130,7 +1123,6 @@ def handle_progress():
             progress = data.get('progress')  # รับ progress object ทั้งหมด
             
             # บันทึก progress ลง database
-            # ปรับให้ตรงกับโครงสร้าง database ของคุณ
             if progress:
                 for topic_id, steps in progress.items():
                     pre_score = 100 if steps.get('pretest') else None
@@ -1232,7 +1224,6 @@ def get_all_followups():
     conn.close()
     return [dict(f) for f in followups]
 
-
 @app.route('/videocall/doctor')
 @login_required(role='doctor')
 def videocall_doctor():
@@ -1253,8 +1244,6 @@ def get_patient(hn):
 @login_required()
 def videocall_patient():
     username = session.get('user')
-    
-    # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
     last_patient = session.get('last_patient')
 
     if not last_patient:
@@ -1375,7 +1364,6 @@ def on_leave(data):
 def on_disconnect():
     print("[DISCONNECT] User disconnected")
 
-# เพิ่ม route สำหรับตรวจสอบ HN
 @app.route('/api/check_patient/<hn>', methods=['GET'])
 @login_required()
 def check_patient(hn):
@@ -1405,7 +1393,6 @@ def check_patient(hn):
         return jsonify({"success": False, "error": "เกิดข้อผิดพลาดในการค้นหาข้อมูล"}), 500
 
 if __name__ == '__main__':
-    # เตรียมการข้อมูลสำหรับผู้ใช้งานและอุปกรณ์
     init_users_db()
     init_patient_db()
     init_learn_db()
@@ -1414,7 +1401,7 @@ if __name__ == '__main__':
     # ใช้ socketio.run() แทน app.run()
     socketio.run(
         app,
-        debug=True,
+        debug=False,
         host='0.0.0.0',
         port=5000,
         allow_unsafe_werkzeug=True  # สำหรับ development เท่านั้น
