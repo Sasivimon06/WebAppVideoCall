@@ -1028,36 +1028,33 @@ def init_learn_db():
 def learn():
     username = session.get('user')
     
-    # ดึงข้อมูลผู้ป่วยล่าสุดจาก session
-    last_patient = session.get('last_patient')
+    # ตรวจสอบจาก Database ทุกครั้ง (ไม่เชื่อ session)
+    with sqlite3.connect("patient.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT HN, name, birth_date, gender, phone, disease "
+            "FROM patient WHERE username = ? ORDER BY created_at DESC LIMIT 1",
+            (username,)
+        )
+        row = cursor.fetchone()
+        
+        if not row:
+            # ถ้ายังไม่มีข้อมูลเลย ให้ redirect ไปหน้า register
+            flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเข้าใช้งานระบบ", "warning")
+            return redirect(url_for('register_patient'))
+        
+        # ถ้ามีข้อมูล เก็บใน session เพื่อใช้ในหน้าอื่น
+        last_patient = {
+            "HN": row[0],
+            "name": row[1],
+            "birthDate": row[2],
+            "gender": row[3],
+            "phone": row[4],
+            "disease": row[5]
+        }
+        session['last_patient'] = last_patient
 
-    if not last_patient:
-        # ถ้าไม่มีใน session ให้ลองดึงจาก DB
-        with sqlite3.connect("patient.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT HN, name, birth_date, gender, phone, disease "
-                "FROM patient WHERE username = ? ORDER BY created_at DESC LIMIT 1",
-                (username,)
-            )
-            row = cursor.fetchone()
-            
-            if row:
-                last_patient = {
-                    "HN": row[0],
-                    "name": row[1],
-                    "birthDate": row[2],
-                    "gender": row[3],
-                    "phone": row[4],
-                    "disease": row[5]
-                }
-                session['last_patient'] = last_patient
-            else:
-                # ถ้ายังไม่มีข้อมูลเลย ให้ redirect ไปหน้า register
-                flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเข้าใช้งานระบบ", "warning")
-                return redirect(url_for('register_patient'))
-
-    return render_template('learn.html', current_user=username)
+    return render_template('learn.html', current_user=username, patient=last_patient)
 
 def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
     with sqlite3.connect("learn.db") as conn:
