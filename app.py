@@ -869,10 +869,10 @@ def view_table(table_name):
 
     # กำหนด mapping: table_name → database file + display name
     tables = {
-        "users": ("users.db", "Users"),
-        "patient": ("patient.db", "Patient"),
-        "learn": ("learn.db", "Learn"),
-        "followup": ("followup.db", "Follow Up")
+        "users": ("users.db", "บัญชีผู้ใช้"),
+        "patient": ("patient.db", "ผู้ป่วย"),
+        "learn": ("learn.db", "การให้ความรู้"),
+        "followup": ("followup.db", "ติดตามอาการ")
     }
 
     if table_name not in tables:
@@ -1027,34 +1027,38 @@ def init_learn_db():
 @login_required()
 def learn():
     username = session.get('user')
+    role = session.get('role')  # สมมติว่าเก็บ role ไว้ใน session ตอน login
     
-    # ตรวจสอบจาก Database ทุกครั้ง (ไม่เชื่อ session)
-    with sqlite3.connect("patient.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT HN, name, birth_date, gender, phone, disease "
-            "FROM patient WHERE username = ? ORDER BY created_at DESC LIMIT 1",
-            (username,)
-        )
-        row = cursor.fetchone()
-        
-        if not row:
-            # ถ้ายังไม่มีข้อมูลเลย ให้ redirect ไปหน้า register
-            flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเข้าใช้งานระบบ", "warning")
-            return redirect(url_for('register_patient'))
-        
-        # ถ้ามีข้อมูล เก็บใน session เพื่อใช้ในหน้าอื่น
-        last_patient = {
-            "HN": row[0],
-            "name": row[1],
-            "birthDate": row[2],
-            "gender": row[3],
-            "phone": row[4],
-            "disease": row[5]
-        }
-        session['last_patient'] = last_patient
+    last_patient = None
 
+    # เฉพาะผู้ใช้ role 'patient' หรือ 'admin' ที่ต้องลงทะเบียนผู้ป่วย
+    if role in ['patient', 'admin_patient']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
+        with sqlite3.connect("patient.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT HN, name, birth_date, gender, phone, disease "
+                "FROM patient WHERE username = ? ORDER BY created_at DESC LIMIT 1",
+                (username,)
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                flash("กรุณาลงทะเบียนผู้ป่วยก่อน เพื่อเข้าใช้งานระบบ", "warning")
+                return redirect(url_for('register_patient'))
+
+            last_patient = {
+                "HN": row[0],
+                "name": row[1],
+                "birthDate": row[2],
+                "gender": row[3],
+                "phone": row[4],
+                "disease": row[5]
+            }
+            session['last_patient'] = last_patient
+
+    # สำหรับผู้ใช้ role อื่น ไม่ต้องลงทะเบียนผู้ป่วย
     return render_template('learn.html', current_user=username, patient=last_patient)
+
 
 def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
     with sqlite3.connect("learn.db") as conn:
