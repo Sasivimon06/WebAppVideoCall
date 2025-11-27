@@ -1032,7 +1032,7 @@ def learn():
     last_patient = None
 
     # เฉพาะผู้ใช้ role 'patient' หรือ 'admin' ที่ต้องลงทะเบียนผู้ป่วย
-    if role in ['patient', 'admin_patient']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
+    if role in ['patient', 'admin']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
         with sqlite3.connect("patient.db") as conn:
             cursor = conn.cursor()
             cursor.execute(
