@@ -8,8 +8,7 @@ from itsdangerous import URLSafeTimedSerializer
 import random
 from werkzeug.security import check_password_hash, generate_password_hash
 from dateutil.relativedelta import relativedelta
-from flask_socketio import SocketIO, emit, join_room, leave_room
-from aiortc import RTCPeerConnection, RTCSessionDescription  
+from flask_socketio import SocketIO, emit, join_room, leave_room  
 import json
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
