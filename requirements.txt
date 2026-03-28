@@ -1,7 +1,6 @@
 aioice==0.10.1
 aiortc==1.13.0
 altgraph==0.17.4
-av==14.4.0
 beautifulsoup4==4.13.4
 bidict==0.23.1
 bitarray==3.7.2
