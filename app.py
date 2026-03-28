@@ -6,23 +6,22 @@ from datetime import datetime, timedelta
 from functools import wraps
 from itsdangerous import URLSafeTimedSerializer
 import random
-from werkzeug.security import check_password_hash,generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from dateutil.relativedelta import relativedelta
-from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from aiortc import RTCPeerConnection, RTCSessionDescription  
 import json
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-import webbrowser
 import time
 from threading import Thread
 import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-def open_browser_safe():
+""" def open_browser_safe():
     try:
         time.sleep(1)  
         webbrowser.open_new("http://127.0.0.1:5000")
@@ -30,21 +29,25 @@ def open_browser_safe():
         pass  
 
 # เรียกใช้ใน Thread
-Thread(target=open_browser_safe).start()
+Thread(target=open_browser_safe).start() """
 
 app = Flask(__name__)
-app.secret_key = 'this_is_a_test_key_for_demo'
+app.config['PROPAGATE_EXCEPTIONS'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.secret_key = os.environ.get('SECRET_KEY', 'this_is_a_test_key_for_demo')
+
 RFID_API_KEY = "my_secure_token_only_for_demo"  
 socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
-pcs = {}  # Dictionary เพื่อเก็บ peer connections ตาม room/user
+pcs = {}
 
 OTP_EXPIRE_MINUTES = 3
 RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-from_email = os.getenv("EMAIL_FROM")
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
@@ -500,29 +503,26 @@ def send_otp_email(email, username, otp, purpose="register"):
             </html>
             '''
         
-        api_key = os.getenv("SENDGRID_API_KEY")
-        from_email = os.getenv("EMAIL_FROM") or os.getenv("MAIL_DEFAULT_SENDER")
-        
-        if not api_key:
-            print("[ERROR] SENDGRID_API_KEY ไม่พบใน environment variables")
+        from_email = os.getenv("EMAIL_FROM")
+        email_password = os.getenv("EMAIL_PASSWORD")
+
+        if not from_email or not email_password:
+            print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบใน environment variables")
             return False
-        
-        if not from_email:
-            print("[ERROR] EMAIL_FROM หรือ MAIL_DEFAULT_SENDER ไม่พบใน environment variables")
-            return False
-        
+
         print(f"[DEBUG] From Email: {from_email}")
-        
-        message = Mail(
-            from_email=from_email,
-            to_emails=email,
-            subject=subject,
-            html_content=html_content
-        )
-        
-        sg = SendGridAPIClient(api_key)
-        response = sg.send(message)
-        return response.status_code == 202
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = from_email
+        msg["To"] = email
+        msg.attach(MIMEText(html_content, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(from_email, email_password)
+            server.sendmail(from_email, email, msg.as_string())
+
+        return True
         
     except Exception as e:
         print(f"[ERROR] ส่งอีเมลล้มเหลว: {str(e)}")
@@ -1032,7 +1032,7 @@ def learn():
     last_patient = None
 
     # เฉพาะผู้ใช้ role 'patient' หรือ 'admin' ที่ต้องลงทะเบียนผู้ป่วย
-    if role in ['patient', 'admin_patient']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
+    if role in ['patient', 'admin']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
         with sqlite3.connect("patient.db") as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -1402,7 +1402,7 @@ if __name__ == '__main__':
     # ใช้ socketio.run() แทน app.run()
     socketio.run(
         app,
-        debug=False,
+        debug=True,
         host='0.0.0.0',
         port=5000,
         allow_unsafe_werkzeug=True  # สำหรับ development เท่านั้น
