@@ -48,6 +48,11 @@ secret_key = os.getenv("MAILJET_SECRET_KEY")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
+DB_PATH = os.environ.get('DB_PATH', '/data')
+
+def get_db_path(db_name):
+    return os.path.join(DB_PATH, db_name)
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(app.static_folder, 'favicon.ico')
@@ -83,7 +88,7 @@ admin.add_view(AdminOnlyModelView(User, db.session))
 
 # Database 
 def init_users_db():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     c.execute('''
     CREATE TABLE IF NOT EXISTS users (
@@ -101,7 +106,7 @@ def init_users_db():
     conn.close()
 
 def create_user(username, password, email):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     
     try:
@@ -144,7 +149,7 @@ def login_required(role=None):
 @app.route('/admin/pending_doctors')
 @login_required(role='admin')
 def pending_doctors():
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     c.execute("SELECT id, username, email FROM users WHERE role = 'doctor' AND is_verified = 0")
     doctors = c.fetchall()
@@ -154,7 +159,7 @@ def pending_doctors():
 @app.route('/admin/approve_doctor/<int:doctor_id>', methods=['POST'])
 @login_required(role='admin')
 def approve_doctor(doctor_id):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     c.execute("UPDATE users SET is_verified = 1 WHERE id = ?", (doctor_id,))
     conn.commit()
@@ -174,7 +179,7 @@ def add_user():
         role = request.form['role']  
         is_verified = 1  # admin อนุมัติแล้ว
 
-        with sqlite3.connect('users.db') as conn:
+        with sqlite3.connect(get_db_path('users.db')) as conn:
             conn.execute(
                 "INSERT INTO users (username, password, email, role, is_verified) VALUES (?, ?, ?, ?, ?)",
                 (username, password, email, role, is_verified)
@@ -253,7 +258,7 @@ def logout():
 
 # เช็คว่า username นี้มีใน DB ยัง
 def user_exists(username):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     c.execute('SELECT 1 FROM users WHERE username = ?', (username,))
     exists = c.fetchone() is not None
@@ -262,7 +267,7 @@ def user_exists(username):
 
 # ตรวจสอบว่าในฐานข้อมูลมีชื่อผู้ใช้และอีเมลที่รับเข้ามานั้นอยู่แล้วหรือไม่ เพื่อป้องกันการสมัครซ้ำด้วยชื่อผู็ใช้,อีเมลเดียวกัน
 def username_or_email_exists(username, email):
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     c = conn.cursor()
     c.execute("SELECT username, email FROM users WHERE username = ? OR email = ?", (username, email))
     row = c.fetchone()
@@ -273,7 +278,7 @@ def username_or_email_exists(username, email):
 def get_user(username):
     if not username:
         return None  # ป้องกันกรณี username เป็น None หรือว่าง
-    conn = sqlite3.connect('users.db')
+    conn = sqlite3.connect(get_db_path('users.db'))
     cursor = conn.cursor()
     cursor.execute("SELECT username, password, role, is_verified FROM users WHERE username = ?", (username,))
     user = cursor.fetchone()
@@ -555,7 +560,7 @@ def register_login():
             return redirect(url_for('register_login'))
 
         # ตรวจว่ามีผู้ใช้ในระบบแล้วหรือยัง
-        conn = sqlite3.connect('users.db')
+        conn = sqlite3.connect(get_db_path('users.db'))
         c = conn.cursor()
         c.execute("SELECT COUNT(*) FROM users")
         user_count = c.fetchone()[0]
@@ -664,7 +669,7 @@ def register_verify_otp():
             is_verified = 1 if role == 'patient' else 0  # ผู้ป่วยยืนยันเอง, หมอต้องรอ admin
 
             # บันทึกผู้ใช้ลงฐานข้อมูลจริง
-            conn = sqlite3.connect('users.db')
+            conn = sqlite3.connect(get_db_path('users.db'))
             c = conn.cursor()
             c.execute(
                 "INSERT INTO users (username, email, password, role, is_verified) VALUES (?, ?, ?, ?, ?)",
@@ -709,7 +714,7 @@ def forgot_password():
         # ล้าง OTP เก่าจาก session
         session.pop('reset_pending_user', None)
 
-        with sqlite3.connect('users.db') as conn:
+        with sqlite3.connect(get_db_path('users.db')) as conn:
             c = conn.cursor()
             c.execute("SELECT email FROM users WHERE username = ?", (username,))
             row = c.fetchone()
@@ -815,7 +820,7 @@ def reset_password():
         hashed_password = generate_password_hash(new_password)
         username = session.get('reset_username')
 
-        with sqlite3.connect('users.db') as conn:
+        with sqlite3.connect(get_db_path('users.db')) as conn:
             c = conn.cursor()
             c.execute(
                 "UPDATE users SET password = ?, otp = NULL, otp_created_at = NULL WHERE username = ?",
