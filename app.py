@@ -16,11 +16,7 @@ from flask_admin.contrib.sqla import ModelView
 import time
 from threading import Thread
 import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
-
-print(f"[DEBUG] All env vars: {dict(os.environ)}")
+import requests
 
 """ def open_browser_safe():
     try:
@@ -501,28 +497,29 @@ def send_otp_email(email, username, otp, purpose="register"):
             </html>
             '''
 
-        EMAIL_FROM = os.environ.get("EMAIL_FROM")
-        EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-        
-        print(f"[DEBUG] EMAIL_FROM: {EMAIL_FROM}")
+        MAILJET_API_KEY = os.environ.get("MAILJET_API_KEY")
+        MAILJET_SECRET_KEY = os.environ.get("MAILJET_SECRET_KEY")
 
-        if not EMAIL_FROM or not EMAIL_PASSWORD:
-            print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบ")
+        if not MAILJET_API_KEY or not MAILJET_SECRET_KEY:
+            print("[ERROR] MAILJET_API_KEY หรือ MAILJET_SECRET_KEY ไม่พบ")
             return False
 
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = EMAIL_FROM
-        msg["To"] = email
-        msg.attach(MIMEText(html_content, "html"))
+        print(f"[DEBUG] Sending via Mailjet to: {email}")
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(EMAIL_FROM, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_FROM, email, msg.as_string())
-
-        return True
+        response = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            auth=(MAILJET_API_KEY, MAILJET_SECRET_KEY),
+            json={
+                "Messages": [{
+                    "From": {"Email": "sasivimon.0606@gmail.com", "Name": "PSU System"},
+                    "To": [{"Email": email}],
+                    "Subject": subject,
+                    "HTMLPart": html_content
+                }]
+            }
+        )
+        print(f"[DEBUG] Mailjet response: {response.status_code}")
+        return response.status_code == 200
 
     except Exception as e:
         print(f"[ERROR] ส่งอีเมลล้มเหลว: {str(e)}")
