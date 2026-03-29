@@ -16,7 +16,9 @@ from flask_admin.contrib.sqla import ModelView
 import time
 from threading import Thread
 import os
-import requests
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 
 """ def open_browser_safe():
     try:
@@ -43,8 +45,8 @@ RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-api_key = os.getenv("MAILJET_API_KEY")
-secret_key = os.getenv("MAILJET_SECRET_KEY")
+EMAIL_FROM = os.getenv("EMAIL_FROM")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
@@ -500,25 +502,26 @@ def send_otp_email(email, username, otp, purpose="register"):
             </html>
             '''
 
-        api_key = os.getenv("MAILJET_API_KEY")
-        secret_key = os.getenv("MAILJET_SECRET_KEY")
+        from_email = os.getenv("EMAIL_FROM")
+        email_password = os.getenv("EMAIL_PASSWORD")
 
-        print(f"[DEBUG] Sending OTP to: {email}")
+        if not from_email or not email_password:
+            print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบ")
+            return False
 
-        response = requests.post(
-            "https://api.mailjet.com/v3.1/send",
-            auth=(api_key, secret_key),
-            json={
-                "Messages": [{
-                    "From": {"Email": "sasivimon.0606@gmail.com", "Name": "ระบบยืนยันตัวตน"},
-                    "To": [{"Email": email}],
-                    "Subject": subject,
-                    "HTMLPart": html_content
-                }]
-            }
-        )
-        print(f"[DEBUG] Mailjet response: {response.status_code}")
-        return response.status_code == 200
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = from_email
+        msg["To"] = email
+        msg.attach(MIMEText(html_content, "html"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(from_email, email_password)
+            server.sendmail(from_email, email, msg.as_string())
+
+        return True
 
     except Exception as e:
         print(f"[ERROR] ส่งอีเมลล้มเหลว: {str(e)}")
