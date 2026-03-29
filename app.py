@@ -20,6 +20,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib
 
+print(f"[DEBUG] All env vars: {dict(os.environ)}")
+
 """ def open_browser_safe():
     try:
         time.sleep(1)  
