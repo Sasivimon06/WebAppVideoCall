@@ -502,24 +502,21 @@ def send_otp_email(email, username, otp, purpose="register"):
             </html>
             '''
 
-        from_email = os.getenv("EMAIL_FROM")
-        email_password = os.getenv("EMAIL_PASSWORD")
-
-        if not from_email or not email_password:
+        if not EMAIL_FROM or not EMAIL_PASSWORD:
             print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบ")
             return False
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = from_email
+        msg["From"] = EMAIL_FROM
         msg["To"] = email
         msg.attach(MIMEText(html_content, "html"))
 
         with smtplib.SMTP("smtp.gmail.com", 587) as server:
             server.ehlo()
             server.starttls()
-            server.login(from_email, email_password)
-            server.sendmail(from_email, email, msg.as_string())
+            server.login(EMAIL_FROM, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_FROM, email, msg.as_string())
 
         return True
 
