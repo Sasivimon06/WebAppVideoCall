@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=False)
 from flask import Flask, render_template, request, redirect, send_from_directory, url_for, jsonify, session, flash
 import sqlite3
 from datetime import datetime, timedelta
