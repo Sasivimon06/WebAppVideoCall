@@ -511,7 +511,7 @@ def send_otp_email(email, username, otp, purpose="register"):
             auth=(MAILJET_API_KEY, MAILJET_SECRET_KEY),
             json={
                 "Messages": [{
-                    "From": {"Email": "sasivimon.0606@gmail.com", "Name": "PSU System"},
+                    "From": {"Email": "sasivimon.0606@gmail.com", "Name": "ระบบยืนยันตัวตน"},
                     "To": [{"Email": email}],
                     "Subject": subject,
                     "HTMLPart": html_content
