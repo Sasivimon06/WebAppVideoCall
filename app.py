@@ -48,7 +48,7 @@ secret_key = os.getenv("MAILJET_SECRET_KEY")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
-DB_PATH = os.environ.get('DB_PATH', '/data')
+DB_PATH = os.environ.get('DB_PATH', '.')
 
 def get_db_path(db_name):
     return os.path.join(DB_PATH, db_name)
