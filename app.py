@@ -16,9 +16,7 @@ from flask_admin.contrib.sqla import ModelView
 import time
 from threading import Thread
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 
 """ def open_browser_safe():
     try:
@@ -45,19 +43,14 @@ RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+api_key = os.getenv("MAILJET_API_KEY")
+secret_key = os.getenv("MAILJET_SECRET_KEY")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(app.static_folder, 'favicon.ico')
-
-# เชื่อมต่อกับฐานข้อมูล users.db
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your_secret_key'
 
 db = SQLAlchemy(app)
 
@@ -501,30 +494,27 @@ def send_otp_email(email, username, otp, purpose="register"):
             </body>
             </html>
             '''
-        
-        from_email = os.getenv("EMAIL_FROM")
-        email_password = os.getenv("EMAIL_PASSWORD")
 
-        if not from_email or not email_password:
-            print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบใน environment variables")
-            return False
+        api_key = os.getenv("MAILJET_API_KEY")
+        secret_key = os.getenv("MAILJET_SECRET_KEY")
 
-        print(f"[DEBUG] From Email: {from_email}")
+        print(f"[DEBUG] Sending OTP to: {email}")
 
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = from_email
-        msg["To"] = email
-        msg.attach(MIMEText(html_content, "html"))
+        response = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            auth=(api_key, secret_key),
+            json={
+                "Messages": [{
+                    "From": {"Email": "sasivimon.0606@gmail.com", "Name": "ระบบยืนยันตัวตน"},
+                    "To": [{"Email": email}],
+                    "Subject": subject,
+                    "HTMLPart": html_content
+                }]
+            }
+        )
+        print(f"[DEBUG] Mailjet response: {response.status_code}")
+        return response.status_code == 200
 
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(from_email, email_password)
-            server.sendmail(from_email, email, msg.as_string())
-
-        return True
-        
     except Exception as e:
         print(f"[ERROR] ส่งอีเมลล้มเหลว: {str(e)}")
         import traceback
