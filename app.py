@@ -45,11 +45,6 @@ RESEND_WAIT_SECONDS = 60
 MAX_LOGIN_ATTEMPTS = 5    # login ผิดได้ไม่เกิน 5 ครั้งใน 10 นาที
 BLOCK_TIME_MINUTES = 10
 
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-print(f"[DEBUG] EMAIL_FROM loaded: {EMAIL_FROM}")
-print(f"[DEBUG] EMAIL_PASSWORD loaded: {'YES' if EMAIL_PASSWORD else 'NO'}")
-
 s = URLSafeTimedSerializer(app.secret_key)
 
 DB_PATH = os.environ.get('DB_PATH', '.')
@@ -503,6 +498,11 @@ def send_otp_email(email, username, otp, purpose="register"):
             </body>
             </html>
             '''
+
+        EMAIL_FROM = os.environ.get("EMAIL_FROM")
+        EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+        
+        print(f"[DEBUG] EMAIL_FROM: {EMAIL_FROM}")
 
         if not EMAIL_FROM or not EMAIL_PASSWORD:
             print("[ERROR] EMAIL_FROM หรือ EMAIL_PASSWORD ไม่พบ")
