@@ -47,6 +47,8 @@ BLOCK_TIME_MINUTES = 10
 
 EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+print(f"[DEBUG] EMAIL_FROM loaded: {EMAIL_FROM}")
+print(f"[DEBUG] EMAIL_PASSWORD loaded: {'YES' if EMAIL_PASSWORD else 'NO'}")
 
 s = URLSafeTimedSerializer(app.secret_key)
 
