@@ -878,7 +878,7 @@ def view_table(table_name):
     db_file, display_name = tables[table_name]
 
     # อ่านข้อมูลจากฐาน
-    conn = sqlite3.connect(db_file)
+    conn = sqlite3.connect(get_db_path(db_file))
     conn.row_factory = sqlite3.Row
     data = conn.execute(f"SELECT * FROM {table_name}").fetchall()
     conn.close()
@@ -886,7 +886,7 @@ def view_table(table_name):
     return render_template('view_table.html', data=data, table_name=display_name)
 
 def init_patient_db():
-    with sqlite3.connect("patient.db") as conn:
+    with sqlite3.connect(get_db_path("patient.db")) as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS patient (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -926,7 +926,7 @@ def register_patient():
             return jsonify({"error": "กรุณากรอกข้อมูลให้ครบ"}), 400
         
         # บันทึกลงฐานข้อมูล SQLite
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path("patient.db")) as conn:
             cursor = conn.cursor()
             # เช็ก HN ซ้ำ
             cursor.execute(
@@ -963,7 +963,7 @@ def register_patient():
     if 'last_patient' in session:
         last_patient = session['last_patient']
         # เช็กว่ามีอยู่จริงใน DB
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path("patient.db")) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT 1 FROM patient WHERE HN = ? AND username = ?", 
                            (last_patient['HN'], username))
@@ -973,7 +973,7 @@ def register_patient():
 
     # ถ้าไม่มีใน session → ดึงจาก DB ล่าสุด
     if not last_patient:
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path("patient.db")) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT HN, name, birth_date, gender, phone, disease "
@@ -998,7 +998,7 @@ def register_patient():
 @login_required()
 def get_patients():
     username = session.get('user')
-    with sqlite3.connect("patient.db") as conn:
+    with sqlite3.connect(get_db_path("patient.db")) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM patient WHERE username = ? ORDER BY created_at DESC", (username,))
@@ -1006,7 +1006,7 @@ def get_patients():
     return jsonify(patients)
 
 def init_learn_db():
-    with sqlite3.connect("learn.db") as conn:
+    with sqlite3.connect(get_db_path("learn.db")) as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS learn (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1029,7 +1029,7 @@ def learn():
 
     # เฉพาะผู้ใช้ role 'patient' หรือ 'admin' ที่ต้องลงทะเบียนผู้ป่วย
     if role in ['patient', 'admin']:  # สมมติ 'admin_patient' คือ admin ที่ต้องลงทะเบียนผู้ป่วย
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path('patient.db')) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT HN, name, birth_date, gender, phone, disease "
@@ -1057,7 +1057,7 @@ def learn():
 
 
 def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, post_score=None, completed_at=None):
-    with sqlite3.connect("learn.db") as conn:
+    with sqlite3.connect(get_db_path("learn.db")) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM learn WHERE username=? AND topic_id=?", (username, topic_id))
         row = cursor.fetchone()
@@ -1078,7 +1078,7 @@ def save_progress_db(username, topic_id, pre_score=None, learn_completed=None, p
         conn.commit()
 
 def get_progress_db(username):
-    with sqlite3.connect("learn.db") as conn:
+    with sqlite3.connect(get_db_path("learn.db")) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT topic_id, pre_score, learn_completed, post_score, completed_at FROM learn WHERE username=?", (username,))
         rows = cursor.fetchall()
@@ -1200,7 +1200,7 @@ def static_files(filename):
         return "File not found", 404
 
 def init_followup_db():
-    with sqlite3.connect("followup.db") as conn:
+    with sqlite3.connect(get_db_path('followup.db')) as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS followup (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1215,7 +1215,7 @@ def init_followup_db():
 
 # ฟังก์ชันดึง follow-ups
 def get_all_followups():
-    conn = sqlite3.connect("followup.db")
+    conn = sqlite3.connect(get_db_path('followup.db'))
     conn.row_factory = sqlite3.Row
     followups = conn.execute("SELECT * FROM followup ORDER BY followup_date DESC").fetchall()
     conn.close()
@@ -1229,7 +1229,7 @@ def videocall_doctor():
 @app.route('/get_patient/<hn>', methods=['GET'])
 @login_required()
 def get_patient(hn):
-    with sqlite3.connect("patient.db") as conn:
+    with sqlite3.connect(get_db_path("patient.db")) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT HN, name FROM patient WHERE HN=?", (hn,))
         row = cursor.fetchone()
@@ -1245,7 +1245,7 @@ def videocall_patient():
 
     if not last_patient:
         # ถ้าไม่มีใน session ให้ลองดึงจาก DB
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path("patient.db")) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT HN, name, birth_date, gender, phone, disease "
@@ -1283,7 +1283,7 @@ def save_patient():
         if not name or not HN:
             return jsonify({'success': False, 'error': 'ชื่อ-สกุล และ HN เป็นค่าจำเป็น'}), 400
 
-        with sqlite3.connect("followup.db") as conn:
+        with sqlite3.connect(get_db_path('followup.db')) as conn:
             cursor = conn.cursor()
             try:
                 # พยายาม insert
@@ -1368,7 +1368,7 @@ def check_patient(hn):
     username = session.get('user')
     print(f"[DEBUG] Current user: {username}")
     try:
-        with sqlite3.connect("patient.db") as conn:
+        with sqlite3.connect(get_db_path("patient.db")) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT HN, name, birth_date, gender, phone, disease FROM patient WHERE HN=?", (hn,))
             row = cursor.fetchone()
