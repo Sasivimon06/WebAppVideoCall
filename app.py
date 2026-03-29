@@ -517,7 +517,9 @@ def send_otp_email(email, username, otp, purpose="register"):
         msg["To"] = email
         msg.attach(MIMEText(html_content, "html"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.ehlo()
+            server.starttls()
             server.login(from_email, email_password)
             server.sendmail(from_email, email, msg.as_string())
 
